@@ -8,6 +8,7 @@ from tqdm import tqdm
 import openslide
 from openslide import OpenSlide
 import torch
+from torchvision import transforms
 import torch.multiprocessing as mp
 import logging
 
@@ -131,11 +132,18 @@ class AutoAnnotator(PatchHanger):
         self.is_binary = log_params['is_binary']
         self.model_file_location = log_params['model_file_location']
         self.model_config_location = log_params['model_config_location']
+        self.model_config = self.load_model_config()
         self.instance_name = log_params['instance_name']
         self.raw_subtypes = log_params['subtypes']
 
 
-        
+        transforms_array = [transforms.ToTensor()]
+        if ('normalize' in model_config and model_config['normalize']['normalize']):
+            transforms_array.append(transforms.Normalize(mean=model_config['normalize']['mean'], std=model_config['normalize']['std']))
+        else :
+            transforms_array.append(transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)))
+        self.transform = transforms.Compose(transforms_array)
+
         self.print_parameters(config, log_params)
 
 
@@ -219,7 +227,11 @@ class AutoAnnotator(PatchHanger):
                 else:
                     ndpatch = image_preprocess.pillow_image_to_ndarray(patch)
                 if image_preprocess.check_luminance(ndpatch):
-                    cur_data = tensor_preprocess.ndarray_image_to_tensor(ndpatch)
+                    if self.evaluation_size:
+                        cur_data = self.transform(resized_patches[self.evaluation_size])
+                    else :
+                        cur_data = self.transform(patch)
+                    # cur_data = tensor_preprocess.ndarray_image_to_tensor(ndpatch)
                     # convert tensor image to batch of size 1
                     cur_data = cur_data.cuda().unsqueeze(0)
                     _, pred_prob, _ = model.forward(cur_data)
