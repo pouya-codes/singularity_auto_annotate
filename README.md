@@ -4,9 +4,9 @@
 
 ```
 Date Created: 22 July 2020
-Last Update: 30 July 2021 2021 by Amirali
+Last Update: 6 Aug 2021 2021 by Amirali
 Developer: Colin Chen
-Version: 1.5
+Version: 1.6
 ```
 
 **Before running any experiment to be sure you are using the latest commits of all modules run the following script:**
@@ -87,6 +87,9 @@ usage: app.py from-arguments [-h] --log_file_location LOG_FILE_LOCATION
                              [--old_version] [--slide_idx SLIDE_IDX]
                              [--maximum_number_patches MAXIMUM_NUMBER_PATCHES [MAXIMUM_NUMBER_PATCHES ...]]
                              [--use_radius] [--radius RADIUS]
+                             [--use_color_norm] [--method METHOD]
+                             [--reference_image REFERENCE_IMAGE]
+                             [--use_standarizer]
                              {use-manifest,use-directory} ...
 
 positional arguments:
@@ -193,6 +196,19 @@ optional arguments:
 
   --radius RADIUS       From each selected coordinate, all its neighbours will be extracted. This number will be multiplied by the patch size.Note: In use-annotation, the number will be multiplied*stride.
                          (default: 1)
+
+  --use_color_norm      Whether use normlization of patches before feeding to the model or not.
+                         (default: False)
+
+  --method METHOD       The Normalization method.
+                         (default: vahadane)
+
+  --reference_image REFERENCE_IMAGE
+                        The path to reference image for normalization.
+                         (default: None)
+
+  --use_standarizer     Whether to apply brighness standarizer on the images.
+                         (default: False)
 
 usage: app.py from-arguments use-manifest [-h] --manifest_location
                                           MANIFEST_LOCATION

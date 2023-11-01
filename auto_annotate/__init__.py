@@ -11,6 +11,8 @@ import torch
 from torchvision import transforms
 import torch.multiprocessing as mp
 import logging
+import staintools
+from PIL import Image
 
 
 import submodule_utils as utils
@@ -167,6 +169,10 @@ class AutoAnnotator(PatchHanger):
         self.store_thumbnail = config.store_thumbnail
         self.use_radius = config.use_radius
         self.radius = config.radius
+        self.use_color_norm = config.use_color_norm
+        self.method = config.method
+        self.reference_image = config.reference_image
+        self.use_standarizer = config.use_standarizer
 
         if self.should_use_directory and self.mask_location is not None:
             self.use_mask = True
@@ -214,6 +220,14 @@ class AutoAnnotator(PatchHanger):
         self.model_config = self.load_model_config()
         self.instance_name = log_params['instance_name']
         self.raw_subtypes = log_params['subtypes']
+
+        if self.use_color_norm:
+            normalizer = staintools.StainNormalizer(method=self.method)
+            ref_image = np.array(Image.open(self.reference_image))
+            if self.use_standarizer:
+                ref_image = staintools.LuminosityStandardizer.standardize(ref_image)
+            normalizer.fit(ref_image)
+            self.normalizer = normalizer.transform
 
 
         transforms_array = [transforms.ToTensor()]
@@ -278,6 +292,10 @@ class AutoAnnotator(PatchHanger):
         for coord in Coords:
             x_, y_ = coord
             patch = image_preprocess.extract(os_slide, x_, y_, self.patch_size)
+            if self.use_color_norm:
+                patch = self.normalize_patch(patch)
+                if patch is None: # blank ones
+                    continue
             if self.resize_sizes:
                 resized_patches = {}
                 for resize_size in self.resize_sizes:
@@ -291,6 +309,19 @@ class AutoAnnotator(PatchHanger):
             patches.append(patch)
             resizeds.append(resized_patches)
         return Coords, patches, resizeds
+
+    def normalize_patch(self, patch):
+        try:
+            patch = np.array(patch)
+            if self.use_standarizer:
+                patch = staintools.LuminosityStandardizer.standardize(patch)
+            patch = self.normalizer(patch)
+            patch = Image.fromarray(patch)
+            return patch
+        except:
+            # it could not be normalized (probably blank)
+            return None
+
 
     def extract_patches(self, model, slide_path, class_size_to_patch_path, device=None):
         """Extracts and auto annotates patches using the steps:
@@ -360,9 +391,18 @@ class AutoAnnotator(PatchHanger):
                                                 os_slide.dimensions, self.patch_size)
                         Coords, patches, resizeds = self.handle_radius_coordiante(os_slide, Coords)
                     else:
-                        Coords = [(x, y)]
-                        patches = [patch]
+                        if self.use_color_norm:
+                            print(type(patch))
+                            patch = self.normalize_patch(patch)
+                            print(type(patch))
+                            if patch is None: # blank ones
+                                continue
+                            for size, patch_ in resized_patches.items():
+                                resized_patches[size] = self.normalize_patch(patch_)
+                        Coords   = [(x, y)]
+                        patches  = [patch]
                         resizeds = [resized_patches]
+
                     for coord, patch, resized_patches in zip(Coords, patches, resizeds):
                         x, y = coord
                         if self.use_mask and slide_name in self.mask: # check if it is tissue
@@ -371,8 +411,8 @@ class AutoAnnotator(PatchHanger):
                                 continue
                         if (x, y) in extracted_coordinates: # it has been previously extracted (usefull for radius)
                             continue
-                        tile_x = int(x / stride)
-                        tile_y = int(y / stride)
+                        tile_x = int(x/stride)
+                        tile_y = int(y/stride)
                         if self.evaluation_size:
                             cur_data = self.transform(resized_patches[self.evaluation_size])
                         else:

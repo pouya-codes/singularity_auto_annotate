@@ -132,11 +132,23 @@ def create_parser(parser):
     parser.add_argument("--use_radius", action='store_true',
             help="Activating this subparser will enable extracting "
             "all patches within radius of the coordinate.")
-    
+
     parser.add_argument("--radius", type=int, default=1,
             help="From each selected coordinate, all its neighbours will be extracted. "
             "This number will be multiplied by the patch size."
             "Note: In use-annotation, the number will be multiplied*stride.")
+
+    parser.add_argument('--use_color_norm', action='store_true',
+        help="""Whether use normlization of patches before feeding to the model or not.""")
+
+    parser.add_argument('--method', type=str, required=False, default='vahadane',
+        help="""The Normalization method.""")
+
+    parser.add_argument('--reference_image', type=file_path,
+        help="""The path to reference image for normalization.""")
+
+    parser.add_argument('--use_standarizer', action='store_true',
+        help="""Whether to apply brighness standarizer on the images.""")
 
     help_subparsers_load = """Specify how to load slides to annotate.
     There are 2 ways: by manifest and by directory."""
