@@ -1,0 +1,8 @@
+*.sif
+*.simg
+*.pyc
+__pycache__/
+.vscode
+.pytest_cache
+auto_annotate/tests/mock/logs/*
+auto_annotate/tests/mock/patches/*
