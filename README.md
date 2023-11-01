@@ -1,23 +1,12 @@
 # Auto Annotate
-
-### Development Information ###
-
-
-**Before running any experiment to be sure you are using the latest commits of all modules run the following script:**
-```
-(cd /projects/ovcare/classification/singularity_modules ; ./update_modules.sh --bcgsc-pass your/bcgsc/path)
-```
+Auto Annotate is a tool for extracting foreground patches from Whole Slide Images (WSIs), predicting whether a patch is a Tumor or Normal (i.e., non-tumor) patch, and then extracting and downsampling the patches. This tool is highly configurable with several options for customization to suit your requirements.
 
 ### Usage ###
 
 ```
 usage: app.py [-h] {from-experiment-manifest,from-arguments} ...
 
-Use trained model to extract patches.
-
-Auto annotate extracts foreground patches from WSI, predicts whether the patch is a Tumor or Normal (aka. non-tumor) patch, and then extracts and downsamples the patches.
-
-If slide dataset has a slide_pattern of 'subtype'. Each patch dataset has the pattern 'annotation/subtype/slide/patch_size/magnification'. For example, if the slide paths look like:
+If the slide dataset has a slide_pattern of 'subtype'. Each patch dataset has the pattern 'annotation/subtype/slide/patch_size/magnification'. For example, if the slide paths look like:
 
 /path/to/slides/MMRd/VOA-1099A.tiff
 /path/to/slides/POLE/VOA-1932A.tiff
