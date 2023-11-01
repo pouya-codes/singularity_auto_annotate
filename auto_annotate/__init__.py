@@ -190,6 +190,8 @@ class AutoAnnotator(PatchHanger):
         """
         CategoryEnum = utils.create_category_enum(self.is_binary,
                 subtypes=self.raw_subtypes)
+
+        logger.info(f'Opening and reading {slide_path} ...')
         os_slide = OpenSlide(slide_path)
     
         shuffle_coordinate = len(self.maximum_number_patches)>0
