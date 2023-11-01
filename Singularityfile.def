@@ -28,8 +28,8 @@ From: debian:9
     conda install -c conda-forge protobuf
     
     #Install submodules
-    # pip install psutils
-    python3 -m pip install psutils
+    pip install psutil
+    # python3 -m pip install psutils
     pip install efficientnet-pytorch
     git clone https://github.com/pouya1991/AIMLab_submodule_utils.git
     pip install -e ./AIMLab_submodule_utils
