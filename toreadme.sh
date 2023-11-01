@@ -4,9 +4,9 @@ echo """# Auto Annotate
 
 \`\`\`
 Date Created: 22 July 2020
-Last Update: Wed Feb 10 14:54:27 PDT 2021 by Amirali
+Last Update: May 18 2021 by Amirali
 Developer: Colin Chen
-Version: 1.0
+Version: 1.2
 \`\`\`
 
 **Before running any experiment to be sure you are using the latest commits of all modules run the following script:**
@@ -68,3 +68,12 @@ singularity run -B /projects/ovcare/classification -B /projects/ovcare/WSI singu
 echo "The number of arrays should be set to value of \`num_slides / num_patch_workers\`." >> README.md
 echo "For fastest way, set the \`num_patch_workers=1\`, then number of arrays is \`num_slides\`." >> README.md
 echo "If you want to extracted tumor patches with probability between 0.4 and 0.6, you should set \`classification_threshold=0.4\`, \`classification_max_threshold=0.6\`, and \`label=Tumor\`." >> README.md
+
+echo "
+**Note:**
+Before running on Numbers, you need to edit these two lines at this path /projects/ovcare/classification/singularity_modules/singularity_auto_annotate/submodule_utils/__init__.py:
+1. Uncomment line 28 and 29
+2. Comment line 31
+
+If you need to run on DGX, you need to do the opposite action.
+""" >> README.md

@@ -92,6 +92,7 @@ class AutoAnnotator(PatchHanger):
         self.store_extracted_patches = config.store_extracted_patches or config.patch_location!="./"
         self.generate_heatmap = config.generate_heatmap or config.heatmap_location!="./"
         self.patch_location = config.patch_location
+        self.hd5_location = config.hd5_location
         self.heatmap_location = config.heatmap_location
         self.classification_threshold = config.classification_threshold
         self.classification_max_threshold = config.classification_max_threshold
@@ -129,14 +130,7 @@ class AutoAnnotator(PatchHanger):
             self.n_process = psutil.cpu_count()
         self.slide_paths = utils.get_paths(self.slide_location, self.slide_pattern,
                 extensions=['tiff', 'svs', 'scn'])
-
-        self.subtype_filter = config.subtype_filter
         self.slide_idx = config.slide_idx
-        self.slide_paths = utils.filter_path(self.slide_paths,
-                                             self.slide_pattern,
-                                             self.subtype_filter,
-                                             self.slide_idx,
-                                             self.n_process)
 
         # log parameters
         self.is_binary = log_params['is_binary']
@@ -148,7 +142,7 @@ class AutoAnnotator(PatchHanger):
 
 
         transforms_array = [transforms.ToTensor()]
-        if ('normalize' in self.model_config and self.model_config['normalize']['normalize']):
+        if ('normalize' in self.model_config and self.model_config['normalize']['use_normalize']):
             transforms_array.append(transforms.Normalize(mean=self.model_config['normalize']['mean'], std=self.model_config['normalize']['std']))
         else :
             transforms_array.append(transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)))
@@ -208,7 +202,7 @@ class AutoAnnotator(PatchHanger):
         """
         CategoryEnum = utils.create_category_enum(self.is_binary,
                 subtypes=self.raw_subtypes)
-
+        paths = []
         # If we are interested in one category such as Tumor
         # Only we need Tumor's probability
         if self.label is not None:
@@ -220,8 +214,8 @@ class AutoAnnotator(PatchHanger):
         shuffle_coordinate = len(self.maximum_number_patches)>0
         slide_patches = SlidePatchExtractor(os_slide, self.patch_size,
                 resize_sizes=self.resize_sizes, shuffle=shuffle_coordinate)
+        slide_name = utils.path_to_filename(slide_path)
         if (self.generate_heatmap) :
-            slide_name = utils.path_to_filename(slide_path)
             heatmap_filepath = os.path.join(self.heatmap_location,
                     f'heatmap.{slide_name}.h5')
             hdf = h5py.File(heatmap_filepath, 'w')
@@ -273,24 +267,32 @@ class AutoAnnotator(PatchHanger):
                             for c in CategoryEnum:
                                 datasets[c.name][tile_y, tile_x] = pred_prob[c.value]
 
-                        if self.store_extracted_patches:
-                            if self.is_tumor:
-                                if pred_label == 1:
-                                    for resize_size in self.resize_sizes:
-                                        patch_path = class_size_to_patch_path[CategoryEnum(1).name][resize_size]
-                                        resized_patches[resize_size].save(os.path.join(patch_path,
-                                                "{}_{}.png".format(tile_x * self.patch_size, tile_y * self.patch_size)))
-                            else:
+
+                        if self.is_tumor:
+                            if pred_label == 1:
                                 for resize_size in self.resize_sizes:
-                                    patch_path = class_size_to_patch_path[CategoryEnum(pred_label).name][resize_size]
-                                    resized_patches[resize_size].save(os.path.join(patch_path,
-                                            "{}_{}.png".format(tile_x * self.patch_size, tile_y * self.patch_size)))
+                                    patch_path = class_size_to_patch_path[CategoryEnum(1).name][resize_size]
+                                    patch_path_ = os.path.join(patch_path,
+                                            "{}_{}.png".format(tile_x * self.patch_size, tile_y * self.patch_size))
+                                    paths.append(patch_path_)
+                                    if self.store_extracted_patches:
+                                        resized_patches[resize_size].save(patch_path_)
+                        else:
+                            for resize_size in self.resize_sizes:
+                                patch_path = class_size_to_patch_path[CategoryEnum(pred_label).name][resize_size]
+                                patch_path_ = os.path.join(patch_path,
+                                            "{}_{}.png".format(tile_x * self.patch_size, tile_y * self.patch_size))
+                                paths.append(patch_path_)
+                                if self.store_extracted_patches:
+                                    resized_patches[resize_size].save(patch_path_)
                 else:
                     if (self.generate_heatmap) :
                         for c in CategoryEnum:
                             datasets[c.name][tile_y, tile_x] = 0.
         temp = ", ".join(f"{key}={val-extracted_patches[key]}" for key,val in self.maximum_number_patches.items())
         logger.info(f'Finished Extracting {temp if shuffle_coordinate else len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}')
+        asset_dict = {'paths': paths}
+        utils.save_hdf5(os.path.join(self.hd5_location, f"{slide_name}.h5"), asset_dict)
 
     def produce_args(self, model, cur_slide_paths):
         """Produce arguments to send to patch extraction subprocess. Creates subdirectories for patches if necessary.
@@ -352,9 +354,9 @@ class AutoAnnotator(PatchHanger):
             print(f"Number of CPU processes of {self.n_process} is too high. Setting to {self.MAX_N_PROCESS}")
             self.n_process = self.MAX_N_PROCESS
         print(f"Number of CPU processes: {self.n_process}")
+        if self.slide_idx is not None:
+            self.slide_paths = utils.select_slides(self.slide_paths, self.slide_idx, self.n_process)
         mp.set_start_method('spawn')
-        # create torch.device for selected GPU device
-        # device = torch.device(f'cuda:{torch.cuda.current_device()}')
         if torch.cuda.is_available():
             print("Start using GPU ... ")
             gpu_devices = gpu_selector(self.gpu_id, self.num_gpus)

@@ -58,6 +58,9 @@ def create_parser(parser):
     parser.add_argument("--patch_location", type=dir_path, default="./",
             help="Path to root directory to extract patches into.")
 
+    parser.add_argument("--hd5_location", type=dir_path, required=True,
+            help="Path to root directory to save hd5 into.")
+
     parser.add_argument("--generate_heatmap", action='store_true',
             help="Generate heatmaps. Default does not generate heatmap.")
 
@@ -109,11 +112,6 @@ def create_parser(parser):
     parser.add_argument("--num_gpus", type=int, default=1,
                 help="The number of GPUs to use. "
                 "Default uses a GPU with the most free memory.")
-
-    parser.add_argument("--subtype_filter", nargs='+', type=subtype_kv,
-                        action=ParseKVToDictAction, default={},
-                        help="Only apply auto_annotation on one subtype. It should be in a format of"
-                        "'subtype'=num, when num is the part of the slides of this subtype that we apply.")
 
     parser.add_argument("--slide_idx", type=int,
             help="Select a specif slide from all the slides in that directory (usefull for running multiple jobs).")
