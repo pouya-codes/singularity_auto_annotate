@@ -72,7 +72,7 @@ def test_auto_annotate():
     auto_annotate/tests/mock/annotations
         (2) set the path of training log for the binary T/N model to log_file_location
     """
-    log_file_location = '/projects/ovcare/classification/cchen/ml/outputs/local_ec_100/20200605_logs/train/log_local_ec_100.tn.p512.m10.2_20200521-162459.txt'
+    log_file_location = '/projects/ovcare/classification/cchen/ml/data/test_ec/logs/train/log_test_ec_20200824-155806.txt'
     slide_pattern = 'subtype'
     slide_pattern = utils.create_patch_pattern(slide_pattern)
     patch_size = 1024
