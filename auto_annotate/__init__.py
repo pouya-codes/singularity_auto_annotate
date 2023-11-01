@@ -138,12 +138,12 @@ class AutoAnnotator(PatchHanger):
 
 
         transforms_array = [transforms.ToTensor()]
-        if ('normalize' in model_config and model_config['normalize']['normalize']):
-            transforms_array.append(transforms.Normalize(mean=model_config['normalize']['mean'], std=model_config['normalize']['std']))
+        if ('normalize' in self.model_config and self.model_config['normalize']['normalize']):
+            transforms_array.append(transforms.Normalize(mean=self.model_config['normalize']['mean'], std=self.model_config['normalize']['std']))
         else :
             transforms_array.append(transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)))
         self.transform = transforms.Compose(transforms_array)
-
+        
         self.print_parameters(config, log_params)
 
 
@@ -199,7 +199,6 @@ class AutoAnnotator(PatchHanger):
         CategoryEnum = utils.create_category_enum(self.is_binary,
                 subtypes=self.raw_subtypes)
 
-        logger.info([c.name for c in CategoryEnum])
         logger.info(f'Opening and reading {slide_path} ...')
         os_slide = OpenSlide(slide_path)
     
