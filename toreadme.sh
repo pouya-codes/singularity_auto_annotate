@@ -13,6 +13,8 @@ cd /projects/ovcare/classification/cchen/ml/singularity_auto_annotate
 
 echo """# Auto Annotate
 
+**Caution: you need to check the error log constantly to monitor _CUDA out of memory_ error. You need to use a smaller number for _--num_patch_workers_ if you get this error.**
+
 To build the singularity image do:
 
 \`\`\`

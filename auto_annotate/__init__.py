@@ -9,6 +9,8 @@ import openslide
 from openslide import OpenSlide
 import torch
 import torch.multiprocessing as mp
+import logging
+
 
 import submodule_utils as utils
 from submodule_utils.image.extract import SlidePatchExtractor
@@ -16,6 +18,9 @@ from submodule_cv import (ChunkLookupException, setup_log_file,
         gpu_selector, PatchHanger)
 import submodule_utils.image.preprocess as image_preprocess
 import submodule_cv.tensor.preprocess as tensor_preprocess
+
+
+logger = logging.getLogger('auto_annotate')
 
 def get_tile_dimensions(os_slide, patch_size):
     width, height = os_slide.dimensions
@@ -123,7 +128,7 @@ class AutoAnnotator(PatchHanger):
         print(payload)
         print('...') # end YAML
 
-    def extract_patches(self, model, slide_path, class_size_to_patch_path, device):
+    def extract_patches(self, model, slide_path, class_size_to_patch_path, device=None):
         """Extracts and auto annotates patches using the steps:
          1. Moves a sliding, non-overlaping window to extract each patch to Pillow patch.
          2. Converts patch to ndarray ndpatch and skips to next patch if background
@@ -144,9 +149,11 @@ class AutoAnnotator(PatchHanger):
         device : torch.device
             To tell evaluation which GPU / CPU to send tensor
         """
+        
         os_slide = OpenSlide(slide_path)
         slide_patches = SlidePatchExtractor(os_slide, self.patch_size,
                 resize_sizes=self.resize_sizes)
+        logger.info(f"Starting Extracting {len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}")
         for data in slide_patches:
             patch, tile_loc, resized_patches = data
             tile_x, tile_y, _, _ = tile_loc
@@ -158,7 +165,7 @@ class AutoAnnotator(PatchHanger):
             if image_preprocess.check_luminance(ndpatch):
                 cur_data = tensor_preprocess.ndarray_image_to_tensor(ndpatch)
                 # convert tensor image to batch of size 1
-                cur_data = cur_data.to(device).unsqueeze(0)
+                cur_data = cur_data.cuda().unsqueeze(0)
                 _, pred_prob, _ = model.forward(cur_data)
                 pred_prob = torch.squeeze(pred_prob)
                 pred_label = torch.argmax(pred_prob).type(torch.int).cpu().item()
@@ -173,8 +180,9 @@ class AutoAnnotator(PatchHanger):
                         patch_path = class_size_to_patch_path[self.CategoryEnum(pred_label).name][resize_size]
                         resized_patches[resize_size].save(os.path.join(patch_path,
                                 "{}_{}.png".format(tile_x * self.patch_size, tile_y * self.patch_size)))
+        logger.info(f"Finished Extracting {len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}")
 
-    def produce_args(self, model, cur_slide_paths, device):
+    def produce_args(self, model, cur_slide_paths):
         """Produce arguments to send to patch extraction subprocess. Creates subdirectories for patches if necessary.
 
         Parameters
@@ -219,7 +227,7 @@ class AutoAnnotator(PatchHanger):
                 for patch_path in size_patch_path.values():
                     if not os.path.exists(patch_path):
                         os.makedirs(patch_path)
-            arg = (model, slide_path, class_size_to_patch_path, device)
+            arg = (model, slide_path, class_size_to_patch_path)
             args.append(arg)
         return args
 
@@ -234,10 +242,10 @@ class AutoAnnotator(PatchHanger):
         print(f"Number of CPU processes: {self.n_process}")
         gpu_devices = gpu_selector(self.gpu_id, self.num_gpus)
         # create torch.device for selected GPU device 
-        device = torch.device(f'cuda:{torch.cuda.current_device()}')
+        # device = torch.device(f'cuda:{torch.cuda.current_device()}')
         mp.set_start_method('spawn')
         model = self.build_model(gpu_devices)
-        model.load_state(self.model_file_location, device=device)
+        model.load_state(self.model_file_location,)
         model.model.eval()
         model.model.share_memory()
         with torch.no_grad():
@@ -248,7 +256,7 @@ class AutoAnnotator(PatchHanger):
                 # print(f"starting subprocesses for slides numbered {idx} to {idx + self.n_process}")
                 cur_slide_paths = self.slide_paths[idx:idx + self.n_process]
                 processes = []
-                for args in self.produce_args(model, cur_slide_paths, device):
+                for args in self.produce_args(model, cur_slide_paths):
                     p = mp.Process(target=self.extract_patches, args=args)
                     p.start()
                     processes.append(p)
