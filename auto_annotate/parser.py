@@ -53,15 +53,15 @@ def create_parser(parser):
             help="Store extracted patches. Default does not store extracted patches.")
 
     parser.add_argument("--store_thumbnail", action='store_true',
-        help="Whether or not save thumbnail with showing the position "
-        "of extracted patches. If yes, it will be stored at a folder called "
-        "Thumbnails in HD5 folder.")
+            help="Whether or not save thumbnail with showing the position "
+            "of extracted patches. If yes, it will be stored at a folder called "
+            "Thumbnails in HD5 folder.")
 
     parser.add_argument("--generate_annotation", action='store_true',
-        help="Whether or not save annotation for slide "
-        "If yes, it will be stored at a folder called Annotation in HD5 folder. "
-        "Also a folder called Thubmnails will be created in Annotation that shows the "
-        "annotation on thumbnails. Only works for Tumor.")
+            help="Whether or not save annotation for slide "
+            "If yes, it will be stored at a folder called Annotation in HD5 folder. "
+            "Also a folder called Thubmnails will be created in Annotation that shows the "
+            "annotation on thumbnails. Only works for Tumor.")
 
     parser.add_argument("--patch_location", type=dir_path, default="./",
             help="Path to root directory to extract patches into.")
@@ -77,15 +77,15 @@ def create_parser(parser):
             "/path/to/heatmaps/).")
 
     parser.add_argument("--classification_threshold", type=float, default=0,
-                help="Minimum obtained probability for the most probable class")
+            help="Minimum obtained probability for the most probable class")
 
     parser.add_argument("--classification_max_threshold", type=float, default=1.0,
-                help="Maximum obtained probability for the most probable class")
+            help="Maximum obtained probability for the most probable class")
 
     parser.add_argument("--label", type=str,
-                help="Only search for this label in output probability of the model"
-                "useful when you set the --classification_threshold threshold and you want"
-                "consider only one of the labels such as tumor")
+            help="Only search for this label in output probability of the model"
+            "useful when you set the --classification_threshold threshold and you want"
+            "consider only one of the labels such as tumor")
 
     parser.add_argument("--patch_size", type=int,
             default=1024, required=True,
@@ -111,8 +111,8 @@ def create_parser(parser):
             help="The ID of GPU to select. Default uses GPU with the most free memory.")
 
     parser.add_argument("--num_gpus", type=int, default=1,
-                help="The number of GPUs to use. "
-                "Default uses a GPU with the most free memory.")
+            help="The number of GPUs to use. "
+            "Default uses a GPU with the most free memory.")
 
     parser.add_argument("--old_version", action='store_true',
             help="Convert trained model on previous version to the current one")
@@ -121,10 +121,18 @@ def create_parser(parser):
             help="Select a specif slide from all the slides in that directory (usefull for running multiple jobs).")
 
     parser.add_argument("--maximum_number_patches", nargs='+', type=subtype_kv,
-                action=ParseKVToDictAction, default={},
-                help="Caution: when you use this flag the code while shuffles the extracted patches from each slide.space separated words describing subtype=maximum_number_of_extracted_patches pairs for each slide. "
-                "Example: if want to extract 500 Tumor, 0 Normal patches and unlimited POLE patches "
-                "then the input should be 'Tumor=500 Normal=0 POLE=-1'")
+            action=ParseKVToDictAction, default={},
+            help="Caution: when you use this flag the code while shuffles the extracted patches from each slide.space separated words describing subtype=maximum_number_of_extracted_patches pairs for each slide. "
+            "Example: if want to extract 500 Tumor, 0 Normal patches and unlimited POLE patches "
+            "then the input should be 'Tumor=500 Normal=0 POLE=-1'")
+
+    parser.add_argument("--use_radius", action='store_true',
+            help="Activating this subparser will enable extracting "
+            "all patches within radius of the coordinate.")
+    parser.add_argument("--radius", type=int, default=1,
+            help="From each selected coordinate, all its neighbours will be extracted. "
+            "This number will be multiplied by the patch size."
+            "Note: In use-annotation, the number will be multiplied*stride.")
 
     help_subparsers_load = """Specify how to load slides to annotate.
     There are 2 ways: by manifest and by directory."""
@@ -134,14 +142,13 @@ def create_parser(parser):
             help=help_subparsers_load)
 
     help_manifest = """Use manifest file to locate slides.
-    a CSV file with minimum of 1 column and maximum of 3 columns. The name of columns
-    should be among ['slide', 'annotation', 'subtype']. slide must be one of the columns.
-    }"""
+        a CSV file with minimum of 4 column and maximum of 6 columns. The name of columns
+        should be among ['origin', 'patient_id', 'slide_id', 'slide_path', 'annotation_path', 'subtype'].
+        origin, slide_id, patient_id must be one of the columns."""
     parser_manifest = subparsers_load.add_parser("use-manifest",
             help=help_manifest)
     parser_manifest.add_argument("--manifest_location", type=file_path, required=True,
-            help="Path to manifest CSV file with three columns of slide, "
-            "annotation, and subtype.")
+            help="Path to manifest CSV file.")
 
     parser_directory = subparsers_load.add_parser("use-directory",
             help="Use a rootdir to locate slidesIt is expected that slide paths "

@@ -100,7 +100,7 @@ class AutoAnnotator(PatchHanger):
         """Get paths of slides that should be extracted.
         """
         if self.should_use_manifest:
-            return self.manifest['slide']
+            return self.manifest['slide_path']
         elif self.should_use_directory:
             return utils.get_paths(self.slide_location, self.slide_pattern,
                     extensions=['tiff', 'tif', 'svs', 'scn'])
@@ -129,6 +129,8 @@ class AutoAnnotator(PatchHanger):
         self.patch_size = config.patch_size
         self.is_tumor = config.is_tumor
         self.store_thumbnail = config.store_thumbnail
+        self.use_radius = config.use_radius
+        self.radius = config.radius
 
         if config.resize_sizes:
             self.resize_sizes = config.resize_sizes
@@ -207,6 +209,34 @@ class AutoAnnotator(PatchHanger):
                     (tile_height, tile_width, ), dtype='f')
         return datasets
 
+    def check_background(self, resized_patches, patch):
+        if self.evaluation_size:
+            ndpatch = image_preprocess.pillow_image_to_ndarray(
+                    resized_patches[self.evaluation_size])
+        else:
+            ndpatch = image_preprocess.pillow_image_to_ndarray(patch)
+        return image_preprocess.check_luminance(ndpatch)
+
+    def handle_radius_coordiante(self, os_slide, Coords):
+        patches  = []
+        resizeds = []
+        for coord in Coords:
+            x_, y_ = coord
+            patch = image_preprocess.extract(os_slide, x_, y_, self.patch_size)
+            if self.resize_sizes:
+                resized_patches = {}
+                for resize_size in self.resize_sizes:
+                    if resize_size == self.patch_size:
+                        resized_patches[resize_size] = patch
+                    else:
+                        resized_patches[resize_size] = image_preprocess.resize(patch, resize_size)
+            if self.check_background(resized_patches, patch):
+                Coords.remove(coord)
+                continue
+            patches.append(patch)
+            resizeds.append(resized_patches)
+        return Coords, patches, resizeds
+
     def extract_patches(self, model, slide_path, class_size_to_patch_path, device=None):
         """Extracts and auto annotates patches using the steps:
          1. Moves a sliding, non-overlaping window to extract each patch to Pillow patch.
@@ -263,68 +293,76 @@ class AutoAnnotator(PatchHanger):
                     break
                 patch, tile_loc, resized_patches = data
                 tile_x, tile_y, x, y = tile_loc
-                if self.evaluation_size:
-                    ndpatch = image_preprocess.pillow_image_to_ndarray(
-                            resized_patches[self.evaluation_size])
-                else:
-                    ndpatch = image_preprocess.pillow_image_to_ndarray(patch)
-                if image_preprocess.check_luminance(ndpatch):
-                    if self.evaluation_size:
-                        cur_data = self.transform(resized_patches[self.evaluation_size])
-                    else :
-                        cur_data = self.transform(patch)
-                    # cur_data = tensor_preprocess.ndarray_image_to_tensor(ndpatch)
-                    # convert tensor image to batch of size 1
-                    if torch.cuda.is_available():
-                        cur_data = cur_data.cuda().unsqueeze(0)
+                if self.check_background(resized_patches, patch):
+                    # stride = int((1-self.patch_overlap)*self.patch_size)
+                    stride = self.patch_size
+                    if self.use_radius:
+                        Coords = utils.get_circular_coordinates(self.radius, x, y, stride,
+                                                os_slide.dimensions, self.patch_size)
+                        Coords, patches, resizeds = self.handle_radius_coordiante(os_slide, Coords)
                     else:
-                        cur_data = cur_data.unsqueeze(0)
-                    _, pred_prob, _ = model.forward(cur_data)
-                    pred_prob = torch.squeeze(pred_prob)
+                        Coords = [(x, y)]
+                        patches = [patch]
+                        resizeds = [resized_patches]
+                    for coord, patch, resized_patches in zip(Coords, patches, resizeds):
+                        x, y = coord
+                        tile_x = int(x / stride)
+                        tile_y = int(y / stride)
+                        if self.evaluation_size:
+                            cur_data = self.transform(resized_patches[self.evaluation_size])
+                        else:
+                            cur_data = self.transform(patch)
+                        # convert tensor image to batch of size 1
+                        if torch.cuda.is_available():
+                            cur_data = cur_data.cuda().unsqueeze(0)
+                        else:
+                            cur_data = cur_data.unsqueeze(0)
+                        _, pred_prob, _ = model.forward(cur_data)
+                        pred_prob = torch.squeeze(pred_prob)
 
-                    if self.label is None:
-                        pred_label = torch.argmax(pred_prob).type(torch.int).cpu().item()
-                        pred_value = torch.max(pred_prob).type(torch.float).cpu().item()
-                    else:
-                        pred_label = int(index)
-                        pred_value = pred_prob[pred_label].type(torch.float).cpu().item()
+                        if self.label is None:
+                            pred_label = torch.argmax(pred_prob).type(torch.int).cpu().item()
+                            pred_value = torch.max(pred_prob).type(torch.float).cpu().item()
+                        else:
+                            pred_label = int(index)
+                            pred_value = pred_prob[pred_label].type(torch.float).cpu().item()
 
-                    if pred_value >= self.classification_threshold and \
-                    pred_value <= self.classification_max_threshold:
-                        if (CategoryEnum(pred_label).name.upper() in extracted_patches):
-                            if ( extracted_patches[CategoryEnum(pred_label).name.upper()]==0):
-                                continue
-                            extracted_patches[CategoryEnum(pred_label).name.upper()]-=1
-                        if (self.generate_heatmap) :
-                            pred_prob = pred_prob.cpu().numpy().tolist()
-                            for c in CategoryEnum:
-                                datasets[c.name][tile_y, tile_x] = pred_prob[c.value]
+                        if pred_value >= self.classification_threshold and \
+                        pred_value <= self.classification_max_threshold:
+                            if (CategoryEnum(pred_label).name.upper() in extracted_patches):
+                                if ( extracted_patches[CategoryEnum(pred_label).name.upper()]==0):
+                                    continue
+                                extracted_patches[CategoryEnum(pred_label).name.upper()]-=1
+                            if (self.generate_heatmap) :
+                                pred_prob = pred_prob.cpu().numpy().tolist()
+                                for c in CategoryEnum:
+                                    datasets[c.name][tile_y, tile_x] = pred_prob[c.value]
 
 
-                        if self.is_tumor:
-                            if pred_label == 1:
-                                if self.generate_annotation:
-                                    fake_annot.add_poly(x, y)
+                            if self.is_tumor:
+                                if pred_label == 1:
+                                    if self.generate_annotation:
+                                        fake_annot.add_poly(x, y)
+                                    for resize_size in self.resize_sizes:
+                                        patch_path = class_size_to_patch_path[CategoryEnum(1).name][resize_size]
+                                        patch_path_ = os.path.join(patch_path,
+                                                "{}_{}.png".format(x, y))
+                                        paths.append(patch_path_)
+                                        if self.store_extracted_patches:
+                                            resized_patches[resize_size].save(patch_path_)
+                            else:
                                 for resize_size in self.resize_sizes:
-                                    patch_path = class_size_to_patch_path[CategoryEnum(1).name][resize_size]
+                                    patch_path = class_size_to_patch_path[CategoryEnum(pred_label).name][resize_size]
                                     patch_path_ = os.path.join(patch_path,
-                                            "{}_{}.png".format(x, y))
+                                                "{}_{}.png".format(x, y))
                                     paths.append(patch_path_)
                                     if self.store_extracted_patches:
                                         resized_patches[resize_size].save(patch_path_)
-                        else:
-                            for resize_size in self.resize_sizes:
-                                patch_path = class_size_to_patch_path[CategoryEnum(pred_label).name][resize_size]
-                                patch_path_ = os.path.join(patch_path,
-                                            "{}_{}.png".format(x, y))
-                                paths.append(patch_path_)
-                                if self.store_extracted_patches:
-                                    resized_patches[resize_size].save(patch_path_)
-                else:
-                    if (self.generate_heatmap) :
-                        for c in CategoryEnum:
-                            datasets[c.name][tile_y, tile_x] = 0.
-        temp = ", ".join(f"{key}={val-extracted_patches[key]}" for key,val in self.maximum_number_patches.items())
+                    else:
+                        if (self.generate_heatmap) :
+                            for c in CategoryEnum:
+                                datasets[c.name][tile_y, tile_x] = 0.
+        temp = ", ".join(f"{key}={val-extracted_patches[key]}" for key, val in self.maximum_number_patches.items())
         logger.info(f'Finished Extracting {temp if shuffle_coordinate else len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}')
         utils.save_hdf5(hd5_file_path, paths, self.patch_size)
         if self.store_thumbnail:
@@ -362,7 +400,7 @@ class AutoAnnotator(PatchHanger):
             if self.should_use_manifest:
                 slide_name = utils.path_to_filename(slide_path)
                 if 'subtype' in self.manifest:
-                    idx = self.manifest['slide'].index(slide_path)
+                    idx = self.manifest['slide_path'].index(slide_path)
                     subtype_ = self.manifest['subtype'][idx]
                     slide_id = f"{subtype_}/{slide_name}"
                 else:

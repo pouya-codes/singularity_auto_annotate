@@ -4,9 +4,9 @@
 
 ```
 Date Created: 22 July 2020
-Last Update: 22 July 2021 2021 by Amirali
+Last Update: 29 July 2021 2021 by Amirali
 Developer: Colin Chen
-Version: 1.3
+Version: 1.4
 ```
 
 **Before running any experiment to be sure you are using the latest commits of all modules run the following script:**
@@ -85,6 +85,7 @@ usage: app.py from-arguments [-h] --log_file_location LOG_FILE_LOCATION
                              [--gpu_id GPU_ID] [--num_gpus NUM_GPUS]
                              [--old_version] [--slide_idx SLIDE_IDX]
                              [--maximum_number_patches MAXIMUM_NUMBER_PATCHES [MAXIMUM_NUMBER_PATCHES ...]]
+                             [--use_radius] [--radius RADIUS]
                              {use-manifest,use-directory} ...
 
 positional arguments:
@@ -92,9 +93,9 @@ positional arguments:
                         Specify how to load slides to annotate.
                             There are 2 ways: by manifest and by directory.
     use-manifest        Use manifest file to locate slides.
-                            a CSV file with minimum of 1 column and maximum of 3 columns. The name of columns
-                            should be among ['slide', 'annotation', 'subtype']. slide must be one of the columns.
-                            }
+                                a CSV file with minimum of 4 column and maximum of 6 columns. The name of columns
+                                should be among ['origin', 'patient_id', 'slide_id', 'slide_path', 'annotation_path', 'subtype'].
+                                origin, slide_id, patient_id must be one of the columns.
 
     use-directory       Use a rootdir to locate slidesIt is expected that slide paths have the structure '/path/to/rootdir/slide_pattern/slide_name.extension' where slide_pattern is usually 'subtype'. Patient IDs are extrapolated from slide_name using known, hardcoded regex.
 
@@ -182,6 +183,12 @@ optional arguments:
                         Caution: when you use this flag the code while shuffles the extracted patches from each slide.space separated words describing subtype=maximum_number_of_extracted_patches pairs for each slide. Example: if want to extract 500 Tumor, 0 Normal patches and unlimited POLE patches then the input should be 'Tumor=500 Normal=0 POLE=-1'
                          (default: {})
 
+  --use_radius          Activating this subparser will enable extracting all patches within radius of the coordinate.
+                         (default: False)
+
+  --radius RADIUS       From each selected coordinate, all its neighbours will be extracted. This number will be multiplied by the patch size.Note: In use-annotation, the number will be multiplied*stride.
+                         (default: 1)
+
 usage: app.py from-arguments use-manifest [-h] --manifest_location
                                           MANIFEST_LOCATION
 
@@ -189,7 +196,7 @@ optional arguments:
   -h, --help            show this help message and exit
 
   --manifest_location MANIFEST_LOCATION
-                        Path to manifest CSV file with three columns of slide, annotation, and subtype.
+                        Path to manifest CSV file.
                          (default: None)
 
 usage: app.py from-arguments use-directory [-h] --slide_location

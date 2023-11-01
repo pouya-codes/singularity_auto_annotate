@@ -4,9 +4,9 @@ echo """# Auto Annotate
 
 \`\`\`
 Date Created: 22 July 2020
-Last Update: 22 July 2021 2021 by Amirali
+Last Update: 29 July 2021 2021 by Amirali
 Developer: Colin Chen
-Version: 1.3
+Version: 1.4
 \`\`\`
 
 **Before running any experiment to be sure you are using the latest commits of all modules run the following script:**
