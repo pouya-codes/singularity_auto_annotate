@@ -88,8 +88,8 @@ class AutoAnnotator(PatchHanger):
     def __init__(self, config, log_params):
         self.log_file_location = config.log_file_location
         self.log_dir_location = config.log_dir_location
-        self.store_extracted_patches = config.store_extracted_patches
-        self.generate_heatmap = config.generate_heatmap
+        self.store_extracted_patches = config.store_extracted_patches or config.patch_location!=""
+        self.generate_heatmap = config.generate_heatmap or config.heatmap_location!=""
         self.patch_location = config.patch_location
         self.heatmap_location = config.heatmap_location
         self.classification_threshold = config.classification_threshold
@@ -106,6 +106,12 @@ class AutoAnnotator(PatchHanger):
         self.evaluation_size = config.evaluation_size
         if self.evaluation_size and self.evaluation_size not in self.resize_sizes:
             raise ValueError(f"evaluation_size {self.evaluation_size} is not any of {tuple(self.resize_sizes)}")
+
+        if self.evaluation_size:
+            self.magnification = int(float(self.evaluation_size) * float(self.FULL_MAGNIFICATION) \
+                    / float(self.patch_size))
+        else:
+            self.magnification = self.FULL_MAGNIFICATION
         # self.extract_foreground = extract_foreground
         self.gpu_id = config.gpu_id
         self.num_gpus = config.num_gpus
@@ -128,8 +134,7 @@ class AutoAnnotator(PatchHanger):
         self.instance_name = log_params['instance_name']
         self.raw_subtypes = log_params['subtypes']
 
-        self.CategoryEnum = utils.create_category_enum(self.is_binary,
-                subtypes=self.raw_subtypes)
+
         
         self.print_parameters(config, log_params)
 
@@ -183,60 +188,64 @@ class AutoAnnotator(PatchHanger):
         device : torch.device
             To tell evaluation which GPU / CPU to send tensor
         """
-        
+        CategoryEnum = utils.create_category_enum(self.is_binary,
+                subtypes=self.raw_subtypes)
         os_slide = OpenSlide(slide_path)
-
+    
         shuffle_coordinate = len(self.maximum_number_patches)>0
         slide_patches = SlidePatchExtractor(os_slide, self.patch_size,
                 resize_sizes=self.resize_sizes, shuffle=shuffle_coordinate)
         if (self.generate_heatmap) :
             slide_name = utils.path_to_filename(slide_path)
             heatmap_filepath = os.path.join(self.heatmap_location,
-                    f'heatmap.{self.instance_name}.{slide_name}.h5')
-            hdf = h5py.File(heatmap_filepath, 'a')
-            datasets = self.create_hdf_datasets(hdf, os_slide, self.CategoryEnum)
+                    f'heatmap.{slide_name}.h5')
+            hdf = h5py.File(heatmap_filepath, 'w')
+            datasets = self.create_hdf_datasets(hdf, os_slide, CategoryEnum)
         temp = ", ".join(f"{ke}={va}" for ke,va in self.maximum_number_patches.items())
         logger.info(f'Starting Extracting {temp if shuffle_coordinate else len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}')
-        extracted_patches = [{key:val} for key,val in self.maximum_number_patches.items()]
-        for data in slide_patches:
-            if (shuffle_coordinate and all([x == 0 for x in extracted_patches.values()])):
-                break
-            patch, tile_loc, resized_patches = data
-            tile_x, tile_y, _, _ = tile_loc
-            if self.evaluation_size:
-                ndpatch = image_preprocess.pillow_image_to_ndarray(
-                        resized_patches[self.evaluation_size])
-            else:
-                ndpatch = image_preprocess.pillow_image_to_ndarray(patch)
-            if image_preprocess.check_luminance(ndpatch):
-                cur_data = tensor_preprocess.ndarray_image_to_tensor(ndpatch)
-                # convert tensor image to batch of size 1
-                cur_data = cur_data.cuda().unsqueeze(0)
-                _, pred_prob, _ = model.forward(cur_data)
-                pred_prob = torch.squeeze(pred_prob)
-                if (self.generate_heatmap) :
-                    pred_prob = pred_prob.cpu().numpy().tolist()
-                    for c in self.CategoryEnum:
-                        datasets[c.name][tile_y, tile_x] = pred_prob[c.value]
-                pred_label = torch.argmax(pred_prob).type(torch.int).cpu().item()
-                pred_value = torch.max(pred_prob).type(torch.int).cpu().item()
-                if (self.store_extracted_patches and pred_value >= self.classification_threshold and extracted_patches[pred_label]!=0):
-                    extracted_patches[self.CategoryEnum(pred_label).name]-=1
-                    if self.is_tumor:
-                        if pred_label == 1:
-                            for resize_size in self.resize_sizes:
-                                patch_path = class_size_to_patch_path[self.CategoryEnum(1).name][resize_size]
-                                resized_patches[resize_size].save(os.path.join(patch_path,
-                                        "{}_{}.png".format(tile_x * self.patch_size, tile_y * self.patch_size)))
-                    else:
-                        for resize_size in self.resize_sizes:
-                            patch_path = class_size_to_patch_path[self.CategoryEnum(pred_label).name][resize_size]
-                            resized_patches[resize_size].save(os.path.join(patch_path,
-                                    "{}_{}.png".format(tile_x * self.patch_size, tile_y * self.patch_size)))
-            else:
-                if (self.generate_heatmap) :
-                    for c in self.CategoryEnum:
-                        datasets[c.name][tile_y, tile_x] = 0.
+        extracted_patches = self.maximum_number_patches.copy()
+        with torch.no_grad():
+            for data in slide_patches:
+                if (shuffle_coordinate and all([x == 0 for x in extracted_patches.values()])):
+                    break
+                patch, tile_loc, resized_patches = data
+                tile_x, tile_y, _, _ = tile_loc
+                if self.evaluation_size:
+                    ndpatch = image_preprocess.pillow_image_to_ndarray(
+                            resized_patches[self.evaluation_size])
+                else:
+                    ndpatch = image_preprocess.pillow_image_to_ndarray(patch)
+                if image_preprocess.check_luminance(ndpatch):
+                    cur_data = tensor_preprocess.ndarray_image_to_tensor(ndpatch)
+                    # convert tensor image to batch of size 1
+                    cur_data = cur_data.cuda().unsqueeze(0)
+                    _, pred_prob, _ = model.forward(cur_data)
+                    pred_prob = torch.squeeze(pred_prob)
+
+                    pred_label = torch.argmax(pred_prob).type(torch.int).cpu().item()
+                    pred_value = torch.max(pred_prob).type(torch.int).cpu().item()
+                    if (pred_value >= self.classification_threshold and extracted_patches[CategoryEnum(pred_label).name]!=0):
+                        if (self.generate_heatmap) :
+                            pred_prob = pred_prob.cpu().numpy().tolist()
+                            for c in CategoryEnum:
+                                datasets[c.name][tile_y, tile_x] = pred_prob[c.value]
+                        extracted_patches[CategoryEnum(pred_label).name]-=1
+                        if self.store_extracted_patches:
+                            if self.is_tumor:
+                                if pred_label == 1:
+                                    for resize_size in self.resize_sizes:
+                                        patch_path = class_size_to_patch_path[CategoryEnum(1).name][resize_size]
+                                        resized_patches[resize_size].save(os.path.join(patch_path,
+                                                "{}_{}.png".format(tile_x * self.patch_size, tile_y * self.patch_size)))
+                            else:
+                                for resize_size in self.resize_sizes:
+                                    patch_path = class_size_to_patch_path[CategoryEnum(pred_label).name][resize_size]
+                                    resized_patches[resize_size].save(os.path.join(patch_path,
+                                            "{}_{}.png".format(tile_x * self.patch_size, tile_y * self.patch_size)))
+                else:
+                    if (self.generate_heatmap) :
+                        for c in CategoryEnum:
+                            datasets[c.name][tile_y, tile_x] = 0.
         temp = ", ".join(f"{key}={val-extracted_patches[key]}" for key,val in self.maximum_number_patches.items())
         logger.info(f'Finished Extracting {temp if shuffle_coordinate else len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}')
 
@@ -263,6 +272,8 @@ class AutoAnnotator(PatchHanger):
              - class_size_to_patch_path (dict) to get the patch path a store evaluated patch using evaluated label name and patch size as keys
              - device (torch.device) to tell evaluation which GPU / CPU to send tensor
         """
+        CategoryEnum = utils.create_category_enum(self.is_binary,
+            subtypes=self.raw_subtypes)
         args = []
         for slide_path in cur_slide_paths:
             slide_id = utils.create_patch_id(slide_path, self.slide_pattern)
@@ -276,11 +287,11 @@ class AutoAnnotator(PatchHanger):
                 return size_patch_path
             
             if self.is_tumor:
-                tumor_label = self.CategoryEnum(1).name
+                tumor_label = CategoryEnum(1).name
                 class_size_to_patch_path = { tumor_label: make_patch_path(tumor_label) }
             else:
                 class_size_to_patch_path = { c.name: make_patch_path(c.name) \
-                        for c in self.CategoryEnum }
+                        for c in CategoryEnum }
             for size_patch_path in class_size_to_patch_path.values():
                 for patch_path in size_patch_path.values():
                     if not os.path.exists(patch_path):
