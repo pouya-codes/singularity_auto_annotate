@@ -80,7 +80,7 @@ class AutoAnnotator(PatchHanger):
         Max number of subprocesses to spawn.
     """
     FULL_MAGNIFICATION = 40
-    MAX_N_PROCESS = 10
+    MAX_N_PROCESS = 48
 
     def get_magnification(self, resize_size):
         return int(float(resize_size) * float(self.FULL_MAGNIFICATION) \
