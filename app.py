@@ -10,5 +10,5 @@ logger = logging.getLogger('auto_annotate')
 if __name__ == "__main__":
     parser = create_parser()
     config = parser.get_args()
-    ape = AutoAnnotator.from_log_file(config)
-    ape.run()
+    app = AutoAnnotator.from_log_file(config)
+    app.run()

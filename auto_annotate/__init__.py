@@ -92,14 +92,18 @@ class AutoAnnotator(PatchHanger):
             self.resize_sizes = config.resize_sizes
         else:
             self.resize_sizes = [self.patch_size]
-        if self.patch_size not in self.resize_sizes:
-            self.resize_sizes.insert(0, self.patch_size)
+        # if self.patch_size not in self.resize_sizes:
+            # self.resize_sizes.insert(0, self.patch_size)
         self.evaluation_size = config.evaluation_size
         if self.evaluation_size and self.evaluation_size not in self.resize_sizes:
             raise ValueError(f"evaluation_size {self.evaluation_size} is not any of {tuple(self.resize_sizes)}")
         # self.extract_foreground = extract_foreground
         self.gpu_id = config.gpu_id
         self.num_gpus = config.num_gpus
+
+        self.num_tumor_patches = config.num_tumor_patches
+        self.num_normal_patches = config.num_normal_patches
+
         if config.num_patch_workers:
             self.n_process = config.num_patch_workers
         else:
@@ -112,6 +116,8 @@ class AutoAnnotator(PatchHanger):
         self.instance_name = log_params['instance_name']
         self.CategoryEnum = utils.create_category_enum(True)
         self.print_parameters(config, log_params)
+
+
     
     @classmethod
     def from_log_file(cls, config):
@@ -151,10 +157,14 @@ class AutoAnnotator(PatchHanger):
         """
         
         os_slide = OpenSlide(slide_path)
+        shuffle_coordinate = self.num_tumor_patches+self.num_tumor_patches!=-2
         slide_patches = SlidePatchExtractor(os_slide, self.patch_size,
-                resize_sizes=self.resize_sizes)
-        logger.info(f"Starting Extracting {len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}")
+                resize_sizes=self.resize_sizes, shuffle=shuffle_coordinate)
+        logger.info(f'Starting Extracting {f"{self.num_tumor_patches} tumor patches and {self.num_normal_patches} normal patches" if shuffle_coordinate else len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}')
+        extracted_patches = [self.num_normal_patches, self.num_tumor_patches]
         for data in slide_patches:
+            if (shuffle_coordinate and extracted_patches[0] == 0 and extracted_patches[1] == 0):
+                break
             patch, tile_loc, resized_patches = data
             tile_x, tile_y, _, _ = tile_loc
             if self.evaluation_size:
@@ -169,18 +179,20 @@ class AutoAnnotator(PatchHanger):
                 _, pred_prob, _ = model.forward(cur_data)
                 pred_prob = torch.squeeze(pred_prob)
                 pred_label = torch.argmax(pred_prob).type(torch.int).cpu().item()
-                if self.is_tumor:
-                    if pred_label == 1:
+                extracted_patches[pred_label]-=1
+                if (extracted_patches[pred_label]!=0):
+                    if self.is_tumor:
+                        if pred_label == 1:
+                            for resize_size in self.resize_sizes:
+                                patch_path = class_size_to_patch_path[self.CategoryEnum(1).name][resize_size]
+                                resized_patches[resize_size].save(os.path.join(patch_path,
+                                        "{}_{}.png".format(tile_x * self.patch_size, tile_y * self.patch_size)))
+                    else:
                         for resize_size in self.resize_sizes:
-                            patch_path = class_size_to_patch_path[self.CategoryEnum(1).name][resize_size]
+                            patch_path = class_size_to_patch_path[self.CategoryEnum(pred_label).name][resize_size]
                             resized_patches[resize_size].save(os.path.join(patch_path,
                                     "{}_{}.png".format(tile_x * self.patch_size, tile_y * self.patch_size)))
-                else:
-                    for resize_size in self.resize_sizes:
-                        patch_path = class_size_to_patch_path[self.CategoryEnum(pred_label).name][resize_size]
-                        resized_patches[resize_size].save(os.path.join(patch_path,
-                                "{}_{}.png".format(tile_x * self.patch_size, tile_y * self.patch_size)))
-        logger.info(f"Finished Extracting {len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}")
+        logger.info(f'Finished Extracting {f"{extracted_patches[1]} tumor patches and {extracted_patches[0]} normal patches" if shuffle_coordinate else len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}')
 
     def produce_args(self, model, cur_slide_paths):
         """Produce arguments to send to patch extraction subprocess. Creates subdirectories for patches if necessary.

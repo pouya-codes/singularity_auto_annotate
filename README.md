@@ -5,18 +5,13 @@
 To build the singularity image do:
 
 ```
-singularity build --remote extract_annotated_patches.sif Singularityfile.def
+singularity build --remote auto_annotate.sif Singularityfile.def
 ```
 
 In the SH file, you should bind the path to the slides if the slides in your slides directory specified by `--slide_location` is symlinked.
 
 ```
-singularity run \
-    -B /projects/ovcare/classification/cchen \
-    -B /projects/ovcare/WSI \
-    auto_annotate.sif \
-    from-experiment-manifest /path/to/experiment.yaml \
-```
+singularity run     -B /projects/ovcare/classification/cchen     -B /projects/ovcare/WSI     auto_annotate.sif     from-experiment-manifest /path/to/experiment.yaml ```
 
 ## Usage
 
@@ -87,6 +82,8 @@ usage: app.py from-arguments [-h] --log_file_location LOG_FILE_LOCATION
                              [--evaluation_size EVALUATION_SIZE] [--is_tumor]
                              [--num_patch_workers NUM_PATCH_WORKERS]
                              [--gpu_id GPU_ID] [--num_gpus NUM_GPUS]
+                             [--num_tumor_patches NUM_TUMOR_PATCHES]
+                             [--num_normal_patches NUM_NORMAL_PATCHES]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -135,5 +132,13 @@ optional arguments:
 
   --num_gpus NUM_GPUS   The number of GPUs to use. Default uses a GPU with the most free memory.
                          (default: 1)
+
+  --num_tumor_patches NUM_TUMOR_PATCHES
+                        The maximum number of extracted tumor patches for each slide. Default extracts all the patches.
+                         (default: -1)
+
+  --num_normal_patches NUM_NORMAL_PATCHES
+                        The maximum number of extracted normal patches for each slide. Default extracts all the patches.
+                         (default: -1)
 ```
 

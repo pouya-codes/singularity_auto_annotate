@@ -78,6 +78,8 @@ def create_parser(parser):
     parser.add_argument("--is_tumor", action='store_true',
             help="Only extract tumor patches. Default extracts tumor and normal patches.")
 
+            
+
     parser.add_argument("--num_patch_workers", type=int, default=0,
             help="Number of loader worker processes to multi-process data loading. "
             "Default uses single-process data loading.")
@@ -88,3 +90,11 @@ def create_parser(parser):
     parser.add_argument("--num_gpus", type=int, required=False, default=1,
                 help="The number of GPUs to use. "
                 "Default uses a GPU with the most free memory.")
+
+    parser.add_argument("--num_tumor_patches", type=int, required=False, default=-1,
+            help="The maximum number of extracted tumor patches for each slide. "
+            "Default extracts all the patches.")
+
+    parser.add_argument("--num_normal_patches", type=int, required=False, default=-1,
+            help="The maximum number of extracted normal patches for each slide. "
+            "Default extracts all the patches.")
