@@ -215,6 +215,7 @@ class AutoAnnotator(PatchHanger):
         slide_patches = SlidePatchExtractor(os_slide, self.patch_size,
                 resize_sizes=self.resize_sizes, shuffle=shuffle_coordinate)
         slide_name = utils.path_to_filename(slide_path)
+        hd5_file_path = os.path.join(self.hd5_location, f"{slide_name}.h5")
         if (self.generate_heatmap) :
             heatmap_filepath = os.path.join(self.heatmap_location,
                     f'heatmap.{slide_name}.h5')
@@ -292,7 +293,7 @@ class AutoAnnotator(PatchHanger):
         temp = ", ".join(f"{key}={val-extracted_patches[key]}" for key,val in self.maximum_number_patches.items())
         logger.info(f'Finished Extracting {temp if shuffle_coordinate else len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}')
         asset_dict = {'paths': paths}
-        utils.save_hdf5(os.path.join(self.hd5_location, f"{slide_name}.h5"), asset_dict)
+        utils.save_hdf5(hd5_file_path, paths, self.patch_size)
 
     def produce_args(self, model, cur_slide_paths):
         """Produce arguments to send to patch extraction subprocess. Creates subdirectories for patches if necessary.
