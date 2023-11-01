@@ -149,7 +149,7 @@ class AutoAnnotator(PatchHanger):
                 resize_sizes=self.resize_sizes)
         for data in slide_patches:
             patch, tile_loc, resized_patches = data
-            tile_x, tile_y = tile_loc
+            tile_x, tile_y, _, _ = tile_loc
             if self.evaluation_size:
                 ndpatch = image_preprocess.pillow_image_to_ndarray(
                         resized_patches[self.evaluation_size])
