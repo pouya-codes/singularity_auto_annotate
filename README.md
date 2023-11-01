@@ -1,5 +1,21 @@
 # Auto Annotate
 
+To build the singularity image do:
+
+```
+singularity build --remote extract_annotated_patches.sif Singularityfile.def
+```
+
+In the SH file, you should bind the path to the slides if the slides in your slides directory specified by `--slide_location` is symlinked.
+
+```
+singularity run \
+    -B /projects/ovcare/classification/cchen \
+    -B /projects/ovcare/WSI \
+    auto_annotate.sif \
+    from-experiment-manifest /path/to/experiment.yaml \
+```
+
 ## Usage
 
 ```
