@@ -156,6 +156,7 @@ class AutoAnnotator(PatchHanger):
         self.log_dir_location = config.log_dir_location
         self.store_extracted_patches = config.store_extracted_patches
         self.generate_annotation = config.generate_annotation
+        self.skip_area = config.skip_area
         self.generate_heatmap = config.generate_heatmap or config.heatmap_location!="./"
         self.patch_location = config.patch_location
         self.patch_overlap = config.patch_overlap
@@ -364,7 +365,8 @@ class AutoAnnotator(PatchHanger):
         # annotation
         if self.generate_annotation:
             fake_annot = FakeAnnotation(slide_name, os_slide, hd5_file_path,
-                                        self.magnification, self.patch_size)
+                                        self.magnification, self.patch_size,
+                                        self.skip_area)
 
         if (self.generate_heatmap) :
             heatmap_filepath = os.path.join(self.heatmap_location,

@@ -4,9 +4,9 @@
 
 ```
 Date Created: 22 July 2020
-Last Update: 6 Aug 2021 2021 by Amirali
+Last Update: 1 Sep 2021 2021 by Amirali
 Developer: Colin Chen
-Version: 1.6
+Version: 1.6.1
 ```
 
 **Before running any experiment to be sure you are using the latest commits of all modules run the following script:**
@@ -72,7 +72,7 @@ optional arguments:
 usage: app.py from-arguments [-h] --log_file_location LOG_FILE_LOCATION
                              --log_dir_location LOG_DIR_LOCATION
                              [--store_extracted_patches] [--store_thumbnail]
-                             [--generate_annotation]
+                             [--generate_annotation] [--skip_area SKIP_AREA]
                              [--patch_location PATCH_LOCATION]
                              [--patch_overlap PATCH_OVERLAP] --hd5_location
                              HD5_LOCATION [--generate_heatmap]
@@ -124,6 +124,10 @@ optional arguments:
   --generate_annotation
                         Whether or not save annotation for slide If yes, it will be stored at a folder called Annotation in HD5 folder. Also a folder called Thubmnails will be created in Annotation that shows the annotation on thumbnails. Only works for Tumor.
                          (default: False)
+
+  --skip_area SKIP_AREA
+                        If this flag is set, when the final annotation is created, polygons (areas) with less than area of determined will be skipped. note that smallest area is patch_size*patch_size.
+                         (default: None)
 
   --patch_location PATCH_LOCATION
                         Path to root directory to extract patches into.

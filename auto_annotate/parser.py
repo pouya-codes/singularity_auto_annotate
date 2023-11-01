@@ -63,6 +63,12 @@ def create_parser(parser):
             "Also a folder called Thubmnails will be created in Annotation that shows the "
             "annotation on thumbnails. Only works for Tumor.")
 
+    parser.add_argument("--skip_area", type=int,
+            default=None, required=False,
+            help="If this flag is set, when the final annotation is created, "
+            "polygons (areas) with less than area of determined will be skipped. "
+            "note that smallest area is patch_size*patch_size.")
+
     parser.add_argument("--patch_location", type=dir_path, default="./",
             help="Path to root directory to extract patches into.")
 
