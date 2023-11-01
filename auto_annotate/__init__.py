@@ -192,7 +192,7 @@ class AutoAnnotator(PatchHanger):
                             patch_path = class_size_to_patch_path[self.CategoryEnum(pred_label).name][resize_size]
                             resized_patches[resize_size].save(os.path.join(patch_path,
                                     "{}_{}.png".format(tile_x * self.patch_size, tile_y * self.patch_size)))
-        logger.info(f'Finished Extracting {f"{extracted_patches[1]} tumor patches and {extracted_patches[0]} normal patches" if shuffle_coordinate else len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}')
+        logger.info(f'Finished Extracting {f"{self.num_tumor_patches - extracted_patches[1]} tumor patches and {self.num_normal_patches - extracted_patches[0]} normal patches" if shuffle_coordinate else len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}')
 
     def produce_args(self, model, cur_slide_paths):
         """Produce arguments to send to patch extraction subprocess. Creates subdirectories for patches if necessary.
