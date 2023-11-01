@@ -23,7 +23,7 @@ def get_tile_dimensions(os_slide, patch_size):
 
 
 class AutoAnnotator(PatchHanger):
-    """Creates a heatmap in the form of an HDF5 file that is saved at the HDF5 ID 'patch_size/magnification/heatmap_name/n_category'
+    """
 
     Attributes
     ----------
@@ -75,105 +75,45 @@ class AutoAnnotator(PatchHanger):
         return int(float(resize_size) * float(self.FULL_MAGNIFICATION) \
             / float(self.patch_size))
 
-    def __init__(self,
-            log_file_location,
-            log_dir_location,
-            patch_location,
-            slide_location,
-            slide_pattern,
-            patch_size,
-            instance_name,
-            model_file_location,
-            model_config_location,
-            # extract_foreground=True,
-            resize_sizes=None,
-            evaluation_size=None,
-            is_tumor=False,
-            num_patch_workers=0,
-            gpu_id=None):
-        self.log_file_location = log_file_location
-        self.log_dir_location = log_dir_location
-        self.patch_location = patch_location
-        self.slide_location = slide_location
-        self.slide_pattern = utils.create_patch_pattern(slide_pattern)
-        self.patch_size = patch_size
-        if resize_sizes:
-            self.resize_sizes = resize_sizes
+    def __init__(self, config, log_params):
+        self.log_dir_location = config.log_dir_location
+        self.patch_location = config.patch_location
+        self.slide_location = config.slide_location
+        self.slide_pattern = utils.create_patch_pattern(config.slide_pattern)
+        self.patch_size = config.patch_size
+        self.is_tumor = config.is_tumor
+        if config.resize_sizes:
+            self.resize_sizes = config.resize_sizes
         else:
             self.resize_sizes = [self.patch_size]
         if self.patch_size not in self.resize_sizes:
             self.resize_sizes.insert(0, self.patch_size)
-        self.instance_name = instance_name
-        self.CategoryEnum = utils.create_category_enum(True)
-        self.model_file_location = model_file_location
-        self.model_config_location = model_config_location
-        # self.extract_foreground = extract_foreground
-        self.evaluation_size = evaluation_size
+        self.evaluation_size = config.evaluation_size
         if self.evaluation_size and self.evaluation_size not in self.resize_sizes:
             raise ValueError(f"evaluation_size {self.evaluation_size} is not any of {tuple(self.resize_sizes)}")
-        self.is_tumor = is_tumor
-        self.num_patch_workers = num_patch_workers
-        self.gpu_id = gpu_id
-
-        self.raw_slide_pattern = slide_pattern
-        
-        # computed values
-        self.n_process = psutil.cpu_count()
+        # self.extract_foreground = extract_foreground
+        self.gpu_id = config.gpu_id
+        self.number_of_gpus = config.number_of_gpus
+        if config.num_patch_workers:
+            self.n_process = config.num_patch_workers
+        else:
+            self.n_process = psutil.cpu_count()
         self.slide_paths = utils.get_paths(self.slide_location, self.slide_pattern,
                 extensions=['tiff', 'svs', 'scn'])
+
+        self.model_file_location = log_params.model_file_location
+        self.instance_name = log_params.instance_name
+        self.CategoryEnum = utils.create_category_enum(True)
+        self.print_parameters(config, log_params)
     
-    @classmethod
-    def from_log_file(cls,
-            log_file_location,
-            log_dir_location,
-            patch_location,
-            slide_location,
-            slide_pattern,
-            patch_size,
-            resize_sizes=None,
-            evaluation_size=None,
-            is_tumor=False,
-            num_patch_workers=0,
-            gpu_id=None):
-        """Adds the component runtime arguments to YAML section in log file
-        """
-        payload = utils.extract_yaml_from_json(log_file_location)
-        return cls(
-                log_file_location,
-                log_dir_location,
-                patch_location,
-                slide_location,
-                slide_pattern,
-                patch_size,
-                payload['instance_name'],
-                payload['model_file_location'],
-                payload['model_config_location'],
-                resize_sizes=resize_sizes,
-                evaluation_size=evaluation_size,
-                is_tumor=is_tumor,
-                num_patch_workers=num_patch_workers,
-                gpu_id=gpu_id)
-    
-    def print_parameters(self):
-        """Print argument parameters
-        """
-        payload = yaml.dump({
-            ## Arguments
-            'log_file_location': self.log_file_location,
-            'log_dir_location': self.log_dir_location,
-            'patch_location': self.patch_location,
-            'slide_location': self.slide_location,
-            'slide_pattern': self.raw_slide_pattern,
-            'patch_size': self.patch_size,
-            'resize_sizes': self.resize_sizes,
-            'evaluation_size': self.evaluation_size,
-            'is_tumor': self.is_tumor,
-            'num_patch_workers': self.num_patch_workers,
-            'gpu_id': self.gpu_id
-        })
-        print('---')
+    def print_parameters(self, config, log_params):
+        """Print argument parameters"""
+        parameters = config.__dict__.copy()
+        parameters['log_params'] = log_params
+        payload = yaml.dump(parameters)
+        print('---') # begin YAML
         print(payload)
-        print('...')
+        print('...') # end YAML
 
     def extract_patches(self, model, slide_path, class_size_to_patch_path, device):
         """Extracts and auto annotates patches using the steps:
@@ -286,11 +226,11 @@ class AutoAnnotator(PatchHanger):
             print(f"Number of CPU processes of {self.n_process} is too high. Setting to {self.MAX_N_PROCESS}")
             self.n_process = self.MAX_N_PROCESS
         print(f"Number of CPU processes: {self.n_process}")
-        gpu_selector(self.gpu_id)
+        gpu_devices = gpu_selector(self.gpu_id, self.number_of_gpus)
         # create torch.device for selected GPU device 
         device = torch.device(f'cuda:{torch.cuda.current_device()}')
         mp.set_start_method('spawn')
-        model = self.build_model(device=device)
+        model = self.build_model(gpu_devices)
         model.load_state(self.model_file_location, device=device)
         model.model.eval()
         model.model.share_memory()
