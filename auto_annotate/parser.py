@@ -162,3 +162,6 @@ def create_parser(parser):
                 "slide paths. Normally slides paths look like "
                 "/path/to/slide/rootdir/subtype/slide.svs and if slide paths are "
                 "/path/to/slide/rootdir/slide.svs then simply pass ''.")
+    parser_directory.add_argument("--mask_location", type=dir_path,
+            help="Path to root directory which contains mask for tissue selection. "
+            "It should contain png files or annotation file with label clear_area.")

@@ -21,6 +21,7 @@ from submodule_cv import (ChunkLookupException, setup_log_file,
         gpu_selector, PatchHanger)
 import submodule_utils.image.preprocess as image_preprocess
 import submodule_cv.tensor.preprocess as tensor_preprocess
+from submodule_utils.metadata.tissue_mask import TissueMask
 
 
 logger = logging.getLogger('auto_annotate')
@@ -107,6 +108,36 @@ class AutoAnnotator(PatchHanger):
         else:
             raise NotImplementedError()
 
+    def load_slide_tissue_mask(self):
+        """Load tissue masks from slide names.
+        """
+        if self.should_use_manifest:
+            generator = self.manifest['mask_path']
+        elif self.should_use_directory:
+            generator = os.listdir(self.mask_location)
+        else:
+            raise NotImplementedError()
+        # if it is .png, we need to know the true size of slide
+        # since the mask is scale down version of it
+        list_slides = self.get_slide_paths()
+        slide_tissue_mask = {}
+        for file in generator:
+            if file.endswith(".png") or file.endswith(".txt"):
+                slide_name = utils.path_to_filename(file)
+                slide_path = utils.find_slide_path(list_slides, slide_name)
+                if slide_path is None: # the path to that slide was not found
+                    continue
+                else:
+                    os_slide = OpenSlide(slide_path)
+                    slide_size = os_slide.dimensions
+                if self.should_use_manifest:
+                    filepath = file
+                else:
+                    filepath = os.path.join(self.mask_location, file)
+                slide_tissue_mask[slide_name] = TissueMask(filepath, 0.4, self.patch_size,
+                                                           slide_size)
+        return slide_tissue_mask
+
     def __init__(self, config, log_params):
 
         self.load_method = config.load_method
@@ -115,6 +146,7 @@ class AutoAnnotator(PatchHanger):
         elif self.should_use_directory:
             self.slide_location = config.slide_location
             self.slide_pattern = utils.create_patch_pattern(config.slide_pattern)
+            self.mask_location = config.mask_location
         self.log_file_location = config.log_file_location
         self.log_dir_location = config.log_dir_location
         self.store_extracted_patches = config.store_extracted_patches
@@ -131,6 +163,15 @@ class AutoAnnotator(PatchHanger):
         self.store_thumbnail = config.store_thumbnail
         self.use_radius = config.use_radius
         self.radius = config.radius
+
+        if self.should_use_directory and self.mask_location is not None:
+            self.use_mask = True
+            self.mask = self.load_slide_tissue_mask()
+        elif self.should_use_manifest and 'mask_path' in self.manifest:
+            self.use_mask = True
+            self.mask = self.load_slide_tissue_mask()
+        else:
+            self.use_mask = False
 
         if config.resize_sizes:
             self.resize_sizes = config.resize_sizes
@@ -217,6 +258,16 @@ class AutoAnnotator(PatchHanger):
             ndpatch = image_preprocess.pillow_image_to_ndarray(patch)
         return image_preprocess.check_luminance(ndpatch)
 
+    def check_tissue(self, slide_name, x, y):
+        label = self.mask[slide_name].points_to_label(
+                np.array([[x, y],
+                    [x, y+self.patch_size],
+                    [x+self.patch_size, y+self.patch_size],
+                    [x+self.patch_size, y]]))
+        if not label:
+            return False
+        return True
+
     def handle_radius_coordiante(self, os_slide, Coords):
         patches  = []
         resizeds = []
@@ -293,6 +344,10 @@ class AutoAnnotator(PatchHanger):
                     break
                 patch, tile_loc, resized_patches = data
                 tile_x, tile_y, x, y = tile_loc
+                if self.use_mask and slide_name in self.mask: # check if it is tissue
+                    check_tissue = self.check_tissue(slide_name, x, y)
+                    if not check_tissue:
+                        continue
                 if self.check_background(resized_patches, patch):
                     # stride = int((1-self.patch_overlap)*self.patch_size)
                     stride = self.patch_size
@@ -306,6 +361,10 @@ class AutoAnnotator(PatchHanger):
                         resizeds = [resized_patches]
                     for coord, patch, resized_patches in zip(Coords, patches, resizeds):
                         x, y = coord
+                        if self.use_mask and slide_name in self.mask: # check if it is tissue
+                            check_tissue = self.check_tissue(slide_name, x, y)
+                            if not check_tissue:
+                                continue
                         tile_x = int(x / stride)
                         tile_y = int(y / stride)
                         if self.evaluation_size:
@@ -366,7 +425,8 @@ class AutoAnnotator(PatchHanger):
         logger.info(f'Finished Extracting {temp if shuffle_coordinate else len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}')
         utils.save_hdf5(hd5_file_path, paths, self.patch_size)
         if self.store_thumbnail:
-            PlotThumbnail(slide_name, os_slide, hd5_file_path, None)
+            mask = self.mask[slide_name] if self.use_mask and slide_name in self.mask else None
+            PlotThumbnail(slide_name, os_slide, hd5_file_path, None, mask=mask)
         if self.generate_annotation:
             fake_annot.run()
 
