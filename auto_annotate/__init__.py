@@ -392,9 +392,7 @@ class AutoAnnotator(PatchHanger):
                         Coords, patches, resizeds = self.handle_radius_coordiante(os_slide, Coords)
                     else:
                         if self.use_color_norm:
-                            print(type(patch))
                             patch = self.normalize_patch(patch)
-                            print(type(patch))
                             if patch is None: # blank ones
                                 continue
                             for size, patch_ in resized_patches.items():
