@@ -102,8 +102,8 @@ class AutoAnnotator(PatchHanger):
         self.slide_paths = utils.get_paths(self.slide_location, self.slide_pattern,
                 extensions=['tiff', 'svs', 'scn'])
 
-        self.model_file_location = log_params.model_file_location
-        self.instance_name = log_params.instance_name
+        self.model_file_location = log_params['model_file_location']
+        self.instance_name = log_params['instance_name']
         self.CategoryEnum = utils.create_category_enum(True)
         self.print_parameters(config, log_params)
     
