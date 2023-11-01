@@ -17,7 +17,7 @@ singularity run     -B /projects/ovcare/classification/cchen     -B /projects/ov
 
 ```
 Date Created: 22 July 2020
-Last Update: Wed Feb 03 14:54:27 PDT 2021 by Amirali
+Last Update: Wed Feb 10 14:54:27 PDT 2021 by Amirali
 Developer: Colin Chen
 Version: 1.0
 ```
@@ -92,6 +92,7 @@ usage: app.py from-arguments [-h] --log_file_location LOG_FILE_LOCATION
                              [--num_patch_workers NUM_PATCH_WORKERS]
                              [--gpu_id GPU_ID] [--num_gpus NUM_GPUS]
                              [--subtype_filter SUBTYPE=NUM]
+                             [--slide_idx IDX]
                              [--maximum_number_patches MAXIMUM_NUMBER_PATCHES [MAXIMUM_NUMBER_PATCHES ...]]
 
 optional arguments:
@@ -162,6 +163,10 @@ optional arguments:
                          (default: {})
 
   --subtype_filter
-     Only apply auto_annotation on one subtype. It should be in a format of 'subtype'=num, when num is the part of the slides of this subtype that we apply. (This is useful for running multiple jobs on different nodes. Each subtype-> a job)
+                       Only apply auto_annotation on one subtype. It should be in a format of 'subtype'=num, when num is the part of the slides of this subtype that we apply. (This is useful for running multiple jobs on different nodes. Each subtype-> a job)
+                       (default: {})
 
+  --slide_idx
+                      Select a specif slide from all the slides in that directory (usefull for running multiple jobs)
+                      (default: None)
 ```

@@ -108,6 +108,8 @@ def create_parser(parser):
                         action=ParseKVToDictAction, required=False, default={},
                         help="""Only apply auto_annotation on one subtype. It should be in a format of
                         'subtype'=num, when num is the part of the slides of this subtype that we apply.""")
+    parser.add_argument("--slide_idx", type=int, required=False,
+            help="Select a specif slide from all the slides in that directory (usefull for running multiple jobs).")
 
 #     parser.add_argument("--num_tumor_patches", type=int, required=False, default=-1,
 #             help="The maximum number of extracted tumor patches for each slide. "
