@@ -1,15 +1,74 @@
-# Docker Auto Annotate
+# Auto Annotate
 
 ## Usage
 
 ```
-usage: app.py [-h] --log_file_location LOG_FILE_LOCATION --log_dir_location
-              LOG_DIR_LOCATION [--patch_location PATCH_LOCATION]
-              --slide_location SLIDE_LOCATION [--slide_pattern SLIDE_PATTERN]
-              --patch_size PATCH_SIZE
-              [--resize_sizes RESIZE_SIZES [RESIZE_SIZES ...]]
-              [--evaluation_size EVALUATION_SIZE] [--is_tumor]
-              [--num_patch_workers NUM_PATCH_WORKERS] [--gpu_id GPU_ID]
+usage: app.py [-h] {from-experiment-manifest,from-arguments} ...
+
+Use trained model to extract patches.
+
+Auto annotate extracts foreground patches from WSI, predicts whether the patch is a Tumor or Normal (aka. non-tumor) patch, and then extracts and downsamples the patches.
+
+If slide dataset has a slide_pattern of 'subtype'. Each patch dataset has the pattern 'annotation/subtype/slide/patch_size/magnification'. For example, if the slide paths look like:
+
+/path/to/slides/MMRd/VOA-1099A.tiff
+/path/to/slides/POLE/VOA-1932A.tiff
+/path/to/slides/p53abn/VOA-3088B.tiff
+/path/to/slides/p53wt/VOA-3266C.tiff
+
+And we use '--resize_sizes 512' then the extracted patch paths will look something like:
+
+/path/to/patches/Tumor/MMRd/VOA-1099A/512/20/30140_12402.png
+/path/to/patches/Normal/MMRd/VOA-1099A/512/20/42038_12402.png
+...
+/path/to/patches/Tumor/POLE/VOA-1932A/512/20/42038_12402.png
+/path/to/patches/Normal/POLE/VOA-1932A/512/20/30140_12402.png
+...
+/path/to/patches/Tumor/p53abn/VOA-3088B/512/20/42038_12402.png
+/path/to/patches/Normal/p53abn/VOA-3088B/512/20/30140_12402.png
+...
+/path/to/patches/Tumor/p53wt/VOA-3266C/512/20/30140_12402.png
+/path/to/patches/Normal/p53wt/VOA-3266C/512/20/42038_12402.png
+...
+
+This component looks in the YAML section of the training log to obtain the trained model and it's hyperparameters.
+
+positional arguments:
+  {from-experiment-manifest,from-arguments}
+                        Choose whether to use arguments from experiment manifest or from commandline
+    from-experiment-manifest
+                        Use experiment manifest
+
+    from-arguments      Use arguments
+
+optional arguments:
+  -h, --help            show this help message and exit
+```
+
+```
+usage: app.py from-experiment-manifest [-h] [--component_id COMPONENT_ID]
+                                       experiment_manifest_location
+
+positional arguments:
+  experiment_manifest_location
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+  --component_id COMPONENT_ID
+```
+
+```
+usage: app.py from-arguments [-h] --log_file_location LOG_FILE_LOCATION
+                             --log_dir_location LOG_DIR_LOCATION
+                             [--patch_location PATCH_LOCATION]
+                             --slide_location SLIDE_LOCATION
+                             [--slide_pattern SLIDE_PATTERN] --patch_size
+                             PATCH_SIZE
+                             [--resize_sizes RESIZE_SIZES [RESIZE_SIZES ...]]
+                             [--evaluation_size EVALUATION_SIZE] [--is_tumor]
+                             [--num_patch_workers NUM_PATCH_WORKERS]
+                             [--gpu_id GPU_ID] [--num_gpus NUM_GPUS]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -23,7 +82,7 @@ optional arguments:
                          (default: None)
 
   --patch_location PATCH_LOCATION
-                        Path to root directory containing dataset patches specified in group or split file (i.e. /path/to/patch/rootdir/). Used by Docker to link the directory.
+                        Path to root directory to extract patches into.
                          (default: None)
 
   --slide_location SLIDE_LOCATION
@@ -55,4 +114,8 @@ optional arguments:
 
   --gpu_id GPU_ID       The ID of GPU to select. Default uses GPU with the most free memory.
                          (default: None)
+
+  --num_gpus NUM_GPUS   The number of GPUs to use. Default uses a GPU with the most free memory.
+                         (default: 1)
 ```
+
