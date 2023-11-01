@@ -42,14 +42,14 @@ epilog=None
 @manifest_arguments(default_component_id="auto_annotate",
         description=description, epilog=epilog)
 def create_parser(parser):
-    parser.add_argument("log_file_location", type=file_path,
+    parser.add_argument("--log_file_location", type=file_path, required=True,
             help="Path to the log file produced during training.")
 
-    parser.add_argument("log_dir_location", type=dir_path,
+    parser.add_argument("--log_dir_location", type=dir_path, required=True,
             help="Path to log directory to save testing logs (i.e. "
             "/path/to/logs/testing/).")
 
-    parser.add_argument("slide_location", type=dir_path,
+    parser.add_argument("--slide_location", type=dir_path, required=True,
             help="Path to root directory containing all of the slides.")
 
     parser.add_argument("--store_extracted_patches", action='store_true',
@@ -83,8 +83,8 @@ def create_parser(parser):
             "/path/to/slide/rootdir/subtype/slide.svs and if slide paths are "
             "/path/to/slide/rootdir/slide.svs then simply pass ''.")
 
-    parser.add_argument("patch_size", type=int,
-            default=1024,
+    parser.add_argument("--patch_size", type=int,
+            default=1024, required=True,
             help="Patch size in pixels to extract from slide to use in evaluation.")
 
     parser.add_argument("--resize_sizes", nargs='+', type=int,
