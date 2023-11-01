@@ -94,7 +94,7 @@ class AutoAnnotator(PatchHanger):
             raise ValueError(f"evaluation_size {self.evaluation_size} is not any of {tuple(self.resize_sizes)}")
         # self.extract_foreground = extract_foreground
         self.gpu_id = config.gpu_id
-        self.number_of_gpus = config.number_of_gpus
+        self.num_gpus = config.num_gpus
         if config.num_patch_workers:
             self.n_process = config.num_patch_workers
         else:
@@ -144,7 +144,6 @@ class AutoAnnotator(PatchHanger):
             To tell evaluation which GPU / CPU to send tensor
         """
         os_slide = OpenSlide(slide_path)
-        slide_name = utils.path_to_filename(slide_path)
         slide_patches = SlidePatchExtractor(os_slide, self.patch_size,
                 resize_sizes=self.resize_sizes)
         for data in slide_patches:
@@ -232,7 +231,7 @@ class AutoAnnotator(PatchHanger):
             print(f"Number of CPU processes of {self.n_process} is too high. Setting to {self.MAX_N_PROCESS}")
             self.n_process = self.MAX_N_PROCESS
         print(f"Number of CPU processes: {self.n_process}")
-        gpu_devices = gpu_selector(self.gpu_id, self.number_of_gpus)
+        gpu_devices = gpu_selector(self.gpu_id, self.num_gpus)
         # create torch.device for selected GPU device 
         device = torch.device(f'cuda:{torch.cuda.current_device()}')
         mp.set_start_method('spawn')
