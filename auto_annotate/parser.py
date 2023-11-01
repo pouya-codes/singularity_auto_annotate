@@ -49,12 +49,27 @@ def create_parser(parser):
             help="Path to log directory to save testing logs (i.e. "
             "/path/to/logs/testing/).")
 
+    parser.add_argument("--slide_location", type=str, required=dir_path,
+            help="Path to root directory containing all of the slides.")
+
+    parser.add_argument("--store_extracted_patches", action='store_true',
+            help="Store extracted patches. Default does not store extracted patches.")
+
     parser.add_argument("--patch_location", type=dir_path, required=False,
             help="Path to root directory to extract patches into.")
 
-    parser.add_argument("--slide_location", type=str, required=dir_path,
-            help="Path to root directory containing all of the slides.")
-    
+    parser.add_argument("--generate_heatmap", action='store_true',
+            help="Generate heatmaps. Default does not generate heatmap.")
+
+    parser.add_argument("--heatmap_location", type=dir_path, required=True,
+            help="Path to directory to save the heatmap H5 files (i.e. "
+            "/path/to/heatmaps/).")
+
+    parser.add_argument("--classification_threshold", type=float, default=0, required=False,
+                help="Minimum obtained probability for the most probable class."
+                "Default: 0")
+
+
     parser.add_argument("--slide_pattern", type=str,
             default='subtype',
             help="'/' separated words describing the directory structure of the "
@@ -65,36 +80,40 @@ def create_parser(parser):
     parser.add_argument("--patch_size", type=int, required=True,
             default=1024,
             help="Patch size in pixels to extract from slide to use in evaluation.")
-    
+
     parser.add_argument("--resize_sizes", nargs='+', type=int, required=False,
             help="List of patch sizes in pixels to resize the extracted patchs and save. "
             "Each size should be at most patch_size. Default does not resize.")
-    
+
     parser.add_argument("--evaluation_size", type=int, required=False,
             help="The size in pixel to resize patch before passing to model for evaluation. "
             "evaluation_size should be one of resize_sizes or set to patch_size. "
             "Default uses patch of patch_size for evaluation.")
-    
+
     parser.add_argument("--is_tumor", action='store_true',
             help="Only extract tumor patches. Default extracts tumor and normal patches.")
-
-            
 
     parser.add_argument("--num_patch_workers", type=int, default=0,
             help="Number of loader worker processes to multi-process data loading. "
             "Default uses single-process data loading.")
-    
+
     parser.add_argument("--gpu_id", type=int, required=False,
             help="The ID of GPU to select. Default uses GPU with the most free memory.")
-    
+
     parser.add_argument("--num_gpus", type=int, required=False, default=1,
                 help="The number of GPUs to use. "
                 "Default uses a GPU with the most free memory.")
 
-    parser.add_argument("--num_tumor_patches", type=int, required=False, default=-1,
-            help="The maximum number of extracted tumor patches for each slide. "
-            "Default extracts all the patches.")
+#     parser.add_argument("--num_tumor_patches", type=int, required=False, default=-1,
+#             help="The maximum number of extracted tumor patches for each slide. "
+#             "Default extracts all the patches.")
 
-    parser.add_argument("--num_normal_patches", type=int, required=False, default=-1,
-            help="The maximum number of extracted normal patches for each slide. "
-            "Default extracts all the patches.")
+#     parser.add_argument("--num_normal_patches", type=int, required=False, default=-1,
+#             help="The maximum number of extracted normal patches for each slide. "
+#             "Default extracts all the patches.")
+
+    parser.add_argument("--maximum_number_patches", nargs='+', type=subtype_kv,
+                action=ParseKVToDictAction, required=False, default={},
+                help="Caution: when you use this flag the code while shuffles the extracted patches from each slide.space separated words describing subtype=maximum_number_of_extracted_patches pairs for each slide. "
+                "Example: if want to extract 500 Tumor, 0 Normal patches and unlimited POLE patches "
+                "then the input should be 'Tumor=500 Normal=0 POLE=-1'")

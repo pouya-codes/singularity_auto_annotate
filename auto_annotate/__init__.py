@@ -2,7 +2,7 @@ import os
 import glob
 
 import psutil
-import yaml
+import yaml, h5py
 import numpy as np
 from tqdm import tqdm
 import openslide
@@ -28,7 +28,7 @@ def get_tile_dimensions(os_slide, patch_size):
 
 
 class AutoAnnotator(PatchHanger):
-    """
+    """Extracts and classify patches and creates a heatmap in the form of an HDF5 file that is saved at the HDF5 ID 'patch_size/magnification/heatmap_name/n_category
 
     Attributes
     ----------
@@ -40,8 +40,13 @@ class AutoAnnotator(PatchHanger):
 
     patch_location : str
         Path to directory to save the heatmap H5 files (i.e. /path/to/heatmaps/).
+
+    heatmap_location : str
+        Path to directory to save the heatmap H5 files (i.e. /path/to/heatmaps/).
         
-    slide_location
+        
+    slide_location : str
+        Path to root directory containing all of the slides.
 
     slide_pattern
 
@@ -83,7 +88,11 @@ class AutoAnnotator(PatchHanger):
     def __init__(self, config, log_params):
         self.log_file_location = config.log_file_location
         self.log_dir_location = config.log_dir_location
+        self.store_extracted_patches = config.store_extracted_patches
+        self.generate_heatmap = config.generate_heatmap
         self.patch_location = config.patch_location
+        self.heatmap_location = config.heatmap_location
+        self.classification_threshold = config.classification_threshold
         self.slide_location = config.slide_location
         self.slide_pattern = utils.create_patch_pattern(config.slide_pattern)
         self.patch_size = config.patch_size
@@ -101,8 +110,9 @@ class AutoAnnotator(PatchHanger):
         self.gpu_id = config.gpu_id
         self.num_gpus = config.num_gpus
 
-        self.num_tumor_patches = config.num_tumor_patches
-        self.num_normal_patches = config.num_normal_patches
+        # self.num_tumor_patches = config.num_tumor_patches
+        # self.num_normal_patches = config.num_normal_patches
+        self.maximum_number_patches = config.maximum_number_patches
 
         if config.num_patch_workers:
             self.n_process = config.num_patch_workers
@@ -111,10 +121,16 @@ class AutoAnnotator(PatchHanger):
         self.slide_paths = utils.get_paths(self.slide_location, self.slide_pattern,
                 extensions=['tiff', 'svs', 'scn'])
 
+        # log parameters
+        self.is_binary = log_params['is_binary']
         self.model_file_location = log_params['model_file_location']
         self.model_config_location = log_params['model_config_location']
         self.instance_name = log_params['instance_name']
-        self.CategoryEnum = utils.create_category_enum(True)
+        self.raw_subtypes = log_params['subtypes']
+
+        self.CategoryEnum = utils.create_category_enum(self.is_binary,
+                subtypes=self.raw_subtypes)
+        
         self.print_parameters(config, log_params)
 
 
@@ -133,6 +149,18 @@ class AutoAnnotator(PatchHanger):
         print('---') # begin YAML
         print(payload)
         print('...') # end YAML
+
+    def create_hdf_datasets(self, hdf, os_slide, CategoryEnum):
+        tile_width, tile_height = get_tile_dimensions(os_slide, self.patch_size)
+        group_name = "{}/{}".format(self.patch_size, self.magnification)
+        group = hdf.require_group(group_name)
+        datasets = { }
+        for c in CategoryEnum:
+            if c.name in group:
+                del group[c.name]
+            datasets[c.name] = group.create_dataset(c.name,
+                    (tile_height, tile_width, ), dtype='f')
+        return datasets
 
     def extract_patches(self, model, slide_path, class_size_to_patch_path, device=None):
         """Extracts and auto annotates patches using the steps:
@@ -157,13 +185,21 @@ class AutoAnnotator(PatchHanger):
         """
         
         os_slide = OpenSlide(slide_path)
-        shuffle_coordinate = self.num_tumor_patches+self.num_tumor_patches!=-2
+
+        shuffle_coordinate = len(self.maximum_number_patches)>0
         slide_patches = SlidePatchExtractor(os_slide, self.patch_size,
                 resize_sizes=self.resize_sizes, shuffle=shuffle_coordinate)
-        logger.info(f'Starting Extracting {f"{self.num_tumor_patches} tumor patches and {self.num_normal_patches} normal patches" if shuffle_coordinate else len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}')
-        extracted_patches = [self.num_normal_patches, self.num_tumor_patches]
+        if (self.generate_heatmap) :
+            slide_name = utils.path_to_filename(slide_path)
+            heatmap_filepath = os.path.join(self.heatmap_location,
+                    f'heatmap.{self.instance_name}.{slide_name}.h5')
+            hdf = h5py.File(heatmap_filepath, 'a')
+            datasets = self.create_hdf_datasets(hdf, os_slide, self.CategoryEnum)
+        temp = ", ".join(f"{ke}={va}" for ke,va in self.maximum_number_patches.items())
+        logger.info(f'Starting Extracting {temp if shuffle_coordinate else len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}')
+        extracted_patches = [{key:val} for key,val in self.maximum_number_patches.items()]
         for data in slide_patches:
-            if (shuffle_coordinate and extracted_patches[0] == 0 and extracted_patches[1] == 0):
+            if (shuffle_coordinate and all([x == 0 for x in extracted_patches.values()])):
                 break
             patch, tile_loc, resized_patches = data
             tile_x, tile_y, _, _ = tile_loc
@@ -178,9 +214,14 @@ class AutoAnnotator(PatchHanger):
                 cur_data = cur_data.cuda().unsqueeze(0)
                 _, pred_prob, _ = model.forward(cur_data)
                 pred_prob = torch.squeeze(pred_prob)
+                if (self.generate_heatmap) :
+                    pred_prob = pred_prob.cpu().numpy().tolist()
+                    for c in self.CategoryEnum:
+                        datasets[c.name][tile_y, tile_x] = pred_prob[c.value]
                 pred_label = torch.argmax(pred_prob).type(torch.int).cpu().item()
-                if (extracted_patches[pred_label]!=0):
-                    extracted_patches[pred_label]-=1
+                pred_value = torch.max(pred_prob).type(torch.int).cpu().item()
+                if (self.store_extracted_patches and pred_value >= self.classification_threshold and extracted_patches[pred_label]!=0):
+                    extracted_patches[self.CategoryEnum(pred_label).name]-=1
                     if self.is_tumor:
                         if pred_label == 1:
                             for resize_size in self.resize_sizes:
@@ -192,7 +233,12 @@ class AutoAnnotator(PatchHanger):
                             patch_path = class_size_to_patch_path[self.CategoryEnum(pred_label).name][resize_size]
                             resized_patches[resize_size].save(os.path.join(patch_path,
                                     "{}_{}.png".format(tile_x * self.patch_size, tile_y * self.patch_size)))
-        logger.info(f'Finished Extracting {f"{self.num_tumor_patches - extracted_patches[1]} tumor patches and {self.num_normal_patches - extracted_patches[0]} normal patches" if shuffle_coordinate else len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}')
+            else:
+                if (self.generate_heatmap) :
+                    for c in self.CategoryEnum:
+                        datasets[c.name][tile_y, tile_x] = 0.
+        temp = ", ".join(f"{key}={val-extracted_patches[key]}" for key,val in self.maximum_number_patches.items())
+        logger.info(f'Finished Extracting {temp if shuffle_coordinate else len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}')
 
     def produce_args(self, model, cur_slide_paths):
         """Produce arguments to send to patch extraction subprocess. Creates subdirectories for patches if necessary.

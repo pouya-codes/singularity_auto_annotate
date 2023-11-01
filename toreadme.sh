@@ -8,8 +8,8 @@
 #SBATCH --gres=gpu:1
 #SBATCH --time=00:30:00
 
-source /projects/ovcare/classification/cchen/{pyenv}
-cd /projects/ovcare/classification/cchen/ml/singularity_auto_annotate
+# source /projects/ovcare/classification/cchen/{pyenv}
+# cd /projects/ovcare/classification/cchen/ml/singularity_auto_annotate
 
 echo """# Auto Annotate
 

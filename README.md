@@ -17,7 +17,7 @@ singularity run     -B /projects/ovcare/classification/cchen     -B /projects/ov
 
 ```
 Date Created: 22 July 2020
-Last Update: Mon Oct 19 13:39:48 PDT 2020 by pouya
+Last Update: Fri Oct 23 14:54:27 PDT 2020 by pouya
 Developer: Colin Chen
 Version: 1.0
 ```
@@ -79,16 +79,19 @@ optional arguments:
 
 usage: app.py from-arguments [-h] --log_file_location LOG_FILE_LOCATION
                              --log_dir_location LOG_DIR_LOCATION
-                             [--patch_location PATCH_LOCATION]
                              --slide_location SLIDE_LOCATION
+                             [--store_extracted_patches]
+                             [--patch_location PATCH_LOCATION]
+                             [--generate_heatmap] --heatmap_location
+                             HEATMAP_LOCATION
+                             [--classification_threshold CLASSIFICATION_THRESHOLD]
                              [--slide_pattern SLIDE_PATTERN] --patch_size
                              PATCH_SIZE
                              [--resize_sizes RESIZE_SIZES [RESIZE_SIZES ...]]
                              [--evaluation_size EVALUATION_SIZE] [--is_tumor]
                              [--num_patch_workers NUM_PATCH_WORKERS]
                              [--gpu_id GPU_ID] [--num_gpus NUM_GPUS]
-                             [--num_tumor_patches NUM_TUMOR_PATCHES]
-                             [--num_normal_patches NUM_NORMAL_PATCHES]
+                             [--maximum_number_patches MAXIMUM_NUMBER_PATCHES [MAXIMUM_NUMBER_PATCHES ...]]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -101,13 +104,28 @@ optional arguments:
                         Path to log directory to save testing logs (i.e. /path/to/logs/testing/).
                          (default: None)
 
+  --slide_location SLIDE_LOCATION
+                        Path to root directory containing all of the slides.
+                         (default: None)
+
+  --store_extracted_patches
+                        Store extracted patches. Default does not store extracted patches.
+                         (default: False)
+
   --patch_location PATCH_LOCATION
                         Path to root directory to extract patches into.
                          (default: None)
 
-  --slide_location SLIDE_LOCATION
-                        Path to root directory containing all of the slides.
+  --generate_heatmap    Generate heatmaps. Default does not generate heatmap.
+                         (default: False)
+
+  --heatmap_location HEATMAP_LOCATION
+                        Path to directory to save the heatmap H5 files (i.e. /path/to/heatmaps/).
                          (default: None)
+
+  --classification_threshold CLASSIFICATION_THRESHOLD
+                        Minimum obtained probability for the most probable class.Default: 0
+                         (default: 0)
 
   --slide_pattern SLIDE_PATTERN
                         '/' separated words describing the directory structure of the slide paths. Normally slides paths look like /path/to/slide/rootdir/subtype/slide.svs and if slide paths are /path/to/slide/rootdir/slide.svs then simply pass ''.
@@ -138,13 +156,9 @@ optional arguments:
   --num_gpus NUM_GPUS   The number of GPUs to use. Default uses a GPU with the most free memory.
                          (default: 1)
 
-  --num_tumor_patches NUM_TUMOR_PATCHES
-                        The maximum number of extracted tumor patches for each slide. Default extracts all the patches.
-                         (default: -1)
-
-  --num_normal_patches NUM_NORMAL_PATCHES
-                        The maximum number of extracted normal patches for each slide. Default extracts all the patches.
-                         (default: -1)
+  --maximum_number_patches MAXIMUM_NUMBER_PATCHES [MAXIMUM_NUMBER_PATCHES ...]
+                        Caution: when you use this flag the code while shuffles the extracted patches from each slide.space separated words describing subtype=maximum_number_of_extracted_patches pairs for each slide. Example: if want to extract 500 Tumor, 0 Normal patches and unlimited POLE patches then the input should be 'Tumor=500 Normal=0 POLE=-1'
+                         (default: {})
 
 ```
 
