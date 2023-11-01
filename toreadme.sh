@@ -31,17 +31,24 @@ singularity run \
     from-experiment-manifest /path/to/experiment.yaml \
 \`\`\`
 
-## Usage
+### Development Information ###
 
-\`\`\`""" > README.md
+\`\`\`
+"Date Created: 22 July 2020"
+"Last Update:" $(date) "by" $(whoami)
+"Developer: Colin Chen"
+"Version: 1.0"
+\`\`\`
+
+### Usage ###
+
+""" > README.md
+
 python app.py -h >> README.md
-echo """\`\`\`
-
-\`\`\`""" >> README.md
+echo >> README.md
 python app.py from-experiment-manifest -h >> README.md
-echo """\`\`\`
-
-\`\`\`""" >> README.md
+echo >> README.md
 python app.py from-arguments -h >> README.md
+echo >> README.md
 echo """\`\`\`
 """ >> README.md

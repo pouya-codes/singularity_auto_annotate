@@ -179,8 +179,8 @@ class AutoAnnotator(PatchHanger):
                 _, pred_prob, _ = model.forward(cur_data)
                 pred_prob = torch.squeeze(pred_prob)
                 pred_label = torch.argmax(pred_prob).type(torch.int).cpu().item()
-                extracted_patches[pred_label]-=1
                 if (extracted_patches[pred_label]!=0):
+                    extracted_patches[pred_label]-=1
                     if self.is_tumor:
                         if pred_label == 1:
                             for resize_size in self.resize_sizes:

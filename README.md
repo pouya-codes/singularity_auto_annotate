@@ -13,9 +13,18 @@ In the SH file, you should bind the path to the slides if the slides in your sli
 ```
 singularity run     -B /projects/ovcare/classification/cchen     -B /projects/ovcare/WSI     auto_annotate.sif     from-experiment-manifest /path/to/experiment.yaml ```
 
-## Usage
+### Development Information ###
 
 ```
+Date Created: 22 July 2020
+Last Update: Mon Oct 19 13:39:48 PDT 2020 by pouya
+Developer: Colin Chen
+Version: 1.0
+```
+
+### Usage ###
+
+
 usage: app.py [-h] {from-experiment-manifest,from-arguments} ...
 
 Use trained model to extract patches.
@@ -56,9 +65,7 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-```
 
-```
 usage: app.py from-experiment-manifest [-h] [--component_id COMPONENT_ID]
                                        experiment_manifest_location
 
@@ -69,9 +76,7 @@ optional arguments:
   -h, --help            show this help message and exit
 
   --component_id COMPONENT_ID
-```
 
-```
 usage: app.py from-arguments [-h] --log_file_location LOG_FILE_LOCATION
                              --log_dir_location LOG_DIR_LOCATION
                              [--patch_location PATCH_LOCATION]
@@ -140,5 +145,6 @@ optional arguments:
   --num_normal_patches NUM_NORMAL_PATCHES
                         The maximum number of extracted normal patches for each slide. Default extracts all the patches.
                          (default: -1)
+
 ```
 
