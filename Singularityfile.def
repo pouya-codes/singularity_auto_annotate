@@ -33,7 +33,7 @@ From: debian:9
     # python3 -m pip install psutils
     pip install git+https:///github.com/Amiiirali/EfficientNet-PyTorch.git
     pip install pyyaml h5py openslide-python tabulate matplotlib pandas Shapely numpy pytest
-    pip install pillow tqdm h5py numpy pyyaml pynvml scikit-image scikit-learn torch torchvision
+    pip install pillow tqdm h5py numpy pyyaml pynvml scikit-image scikit-learn torch torchvision opencv-python
     pip install --upgrade h5py
 
 
