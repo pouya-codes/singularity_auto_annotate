@@ -55,13 +55,13 @@ def create_parser(parser):
     parser.add_argument("--store_extracted_patches", action='store_true',
             help="Store extracted patches. Default does not store extracted patches.")
 
-    parser.add_argument("--patch_location", type=dir_path, required=False, default="./", 
+    parser.add_argument("--patch_location", type=dir_path, required=False, default="./",
             help="Path to root directory to extract patches into.")
 
     parser.add_argument("--generate_heatmap", action='store_true',
             help="Generate heatmaps. Default does not generate heatmap.")
 
-    parser.add_argument("--heatmap_location", type=dir_path, required=False, default="./", 
+    parser.add_argument("--heatmap_location", type=dir_path, required=False, default="./",
             help="Path to directory to save the heatmap H5 files (i.e. "
             "/path/to/heatmaps/).")
 
@@ -103,6 +103,9 @@ def create_parser(parser):
     parser.add_argument("--num_gpus", type=int, required=False, default=1,
                 help="The number of GPUs to use. "
                 "Default uses a GPU with the most free memory.")
+
+    parser.add_argument("--subtype_filter", type=str, required=False,
+            help="Only apply auto_annotation on one subtype.")
 
 #     parser.add_argument("--num_tumor_patches", type=int, required=False, default=-1,
 #             help="The maximum number of extracted tumor patches for each slide. "
