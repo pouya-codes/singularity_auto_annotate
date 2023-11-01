@@ -4,9 +4,9 @@
 
 ```
 Date Created: 22 July 2020
-Last Update: May 19 2021 by Amirali
+Last Update: 9 June 2021 2021 by Amirali
 Developer: Colin Chen
-Version: 1.2.1
+Version: 1.2.2
 ```
 
 **Before running any experiment to be sure you are using the latest commits of all modules run the following script:**
@@ -72,7 +72,7 @@ optional arguments:
 usage: app.py from-arguments [-h] --log_file_location LOG_FILE_LOCATION
                              --log_dir_location LOG_DIR_LOCATION
                              --slide_location SLIDE_LOCATION
-                             [--store_extracted_patches]
+                             [--store_extracted_patches] [--store_thumbnail]
                              [--patch_location PATCH_LOCATION] --hd5_location
                              HD5_LOCATION [--generate_heatmap]
                              [--heatmap_location HEATMAP_LOCATION]
@@ -104,6 +104,9 @@ optional arguments:
 
   --store_extracted_patches
                         Store extracted patches. Default does not store extracted patches.
+                         (default: False)
+
+  --store_thumbnail     Whether or not save thumbnail with showing the position of extracted patches. If yes, it will be stored at a folder called Thumbnails in HD5 folder.
                          (default: False)
 
   --patch_location PATCH_LOCATION

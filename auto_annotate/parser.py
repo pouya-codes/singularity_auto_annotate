@@ -55,6 +55,11 @@ def create_parser(parser):
     parser.add_argument("--store_extracted_patches", action='store_true',
             help="Store extracted patches. Default does not store extracted patches.")
 
+    parser.add_argument("--store_thumbnail", action='store_true',
+        help="Whether or not save thumbnail with showing the position "
+        "of extracted patches. If yes, it will be stored at a folder called "
+        "Thumbnails in HD5 folder.")
+
     parser.add_argument("--patch_location", type=dir_path, default="./",
             help="Path to root directory to extract patches into.")
 

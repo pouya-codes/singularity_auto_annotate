@@ -14,6 +14,7 @@ import logging
 
 
 import submodule_utils as utils
+from submodule_utils.thumbnail import PlotThumbnail
 from submodule_utils.image.extract import SlidePatchExtractor
 from submodule_cv import (ChunkLookupException, setup_log_file,
         gpu_selector, PatchHanger)
@@ -101,6 +102,7 @@ class AutoAnnotator(PatchHanger):
         self.slide_pattern = utils.create_patch_pattern(config.slide_pattern)
         self.patch_size = config.patch_size
         self.is_tumor = config.is_tumor
+        self.store_thumbnail = config.store_thumbnail
         if config.resize_sizes:
             self.resize_sizes = config.resize_sizes
         else:
@@ -293,6 +295,8 @@ class AutoAnnotator(PatchHanger):
         temp = ", ".join(f"{key}={val-extracted_patches[key]}" for key,val in self.maximum_number_patches.items())
         logger.info(f'Finished Extracting {temp if shuffle_coordinate else len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}')
         utils.save_hdf5(hd5_file_path, paths, self.patch_size)
+        if self.store_thumbnail:
+            PlotThumbnail(slide_name, os_slide, hd5_file_path, None)
 
     def produce_args(self, model, cur_slide_paths):
         """Produce arguments to send to patch extraction subprocess. Creates subdirectories for patches if necessary.
@@ -337,7 +341,7 @@ class AutoAnnotator(PatchHanger):
             else:
                 class_size_to_patch_path = { c.name: make_patch_path(c.name) \
                         for c in CategoryEnum }
-                
+
             if self.store_extracted_patches:
                 for size_patch_path in class_size_to_patch_path.values():
                     for patch_path in size_patch_path.values():
