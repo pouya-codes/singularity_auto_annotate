@@ -9,7 +9,7 @@ Developer: Colin Chen
 Version: 1.0
 ```
 
-**Before runing any experiment to be sure you are using the latest commits of all modules run the following script:**
+**Before running any experiment to be sure you are using the latest commits of all modules run the following script:**
 ```
 (cd /projects/ovcare/classification/singularity_modules ; ./update_modules.sh --bcgsc-pass your/bcgsc/path)
 ```
@@ -69,13 +69,17 @@ optional arguments:
 
   --component_id COMPONENT_ID
 
-usage: app.py from-arguments [-h] [--store_extracted_patches]
+usage: app.py from-arguments [-h] --log_file_location LOG_FILE_LOCATION
+                             --log_dir_location LOG_DIR_LOCATION
+                             --slide_location SLIDE_LOCATION
+                             [--store_extracted_patches]
                              [--patch_location PATCH_LOCATION]
                              [--generate_heatmap]
                              [--heatmap_location HEATMAP_LOCATION]
                              [--classification_threshold CLASSIFICATION_THRESHOLD]
                              [--classification_max_threshold CLASSIFICATION_MAX_THRESHOLD]
                              [--label LABEL] [--slide_pattern SLIDE_PATTERN]
+                             --patch_size PATCH_SIZE
                              [--resize_sizes RESIZE_SIZES [RESIZE_SIZES ...]]
                              [--evaluation_size EVALUATION_SIZE] [--is_tumor]
                              [--num_patch_workers NUM_PATCH_WORKERS]
@@ -83,20 +87,21 @@ usage: app.py from-arguments [-h] [--store_extracted_patches]
                              [--subtype_filter SUBTYPE_FILTER [SUBTYPE_FILTER ...]]
                              [--slide_idx SLIDE_IDX]
                              [--maximum_number_patches MAXIMUM_NUMBER_PATCHES [MAXIMUM_NUMBER_PATCHES ...]]
-                             log_file_location log_dir_location slide_location
-                             patch_size
-
-positional arguments:
-  log_file_location     Path to the log file produced during training.
-
-  log_dir_location      Path to log directory to save testing logs (i.e. /path/to/logs/testing/).
-
-  slide_location        Path to root directory containing all of the slides.
-
-  patch_size            Patch size in pixels to extract from slide to use in evaluation.
 
 optional arguments:
   -h, --help            show this help message and exit
+
+  --log_file_location LOG_FILE_LOCATION
+                        Path to the log file produced during training.
+                         (default: None)
+
+  --log_dir_location LOG_DIR_LOCATION
+                        Path to log directory to save testing logs (i.e. /path/to/logs/testing/).
+                         (default: None)
+
+  --slide_location SLIDE_LOCATION
+                        Path to root directory containing all of the slides.
+                         (default: None)
 
   --store_extracted_patches
                         Store extracted patches. Default does not store extracted patches.
@@ -127,6 +132,10 @@ optional arguments:
   --slide_pattern SLIDE_PATTERN
                         '/' separated words describing the directory structure of the slide paths. Normally slides paths look like /path/to/slide/rootdir/subtype/slide.svs and if slide paths are /path/to/slide/rootdir/slide.svs then simply pass ''.
                          (default: subtype)
+
+  --patch_size PATCH_SIZE
+                        Patch size in pixels to extract from slide to use in evaluation.
+                         (default: 1024)
 
   --resize_sizes RESIZE_SIZES [RESIZE_SIZES ...]
                         List of patch sizes in pixels to resize the extracted patchs and save. Each size should be at most patch_size. Default does not resize.
@@ -194,7 +203,7 @@ singularity run -B /projects/ovcare/classification -B /projects/ovcare/WSI singu
  --store_extracted_patches True
  --classification_threshold 0.9
  --num_patch_workers 1
- --slide_idx 
+ --slide_idx $SLURM_ARRAY_TASK_ID
  --maximum_number_patches Tumor=400 Stroma=400
 
 ```
@@ -202,4 +211,3 @@ singularity run -B /projects/ovcare/classification -B /projects/ovcare/WSI singu
 The number of arrays should be set to value of `num_slides / num_patch_workers`.
 For fastest way, set the `num_patch_workers=1`, then number of arrays is `num_slides`.
 If you want to extracted tumor patches with probability between 0.4 and 0.6, you should set `classification_threshold=0.4`, `classification_max_threshold=0.6`, and `label=Tumor`.
-
