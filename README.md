@@ -4,9 +4,9 @@
 
 ```
 Date Created: 22 July 2020
-Last Update: 9 June 2021 2021 by Amirali
+Last Update: 23 June 2021 2021 by Amirali
 Developer: Colin Chen
-Version: 1.2.2
+Version: 1.2.3
 ```
 
 **Before running any experiment to be sure you are using the latest commits of all modules run the following script:**
@@ -73,6 +73,7 @@ usage: app.py from-arguments [-h] --log_file_location LOG_FILE_LOCATION
                              --log_dir_location LOG_DIR_LOCATION
                              --slide_location SLIDE_LOCATION
                              [--store_extracted_patches] [--store_thumbnail]
+                             [--generate_annotation]
                              [--patch_location PATCH_LOCATION] --hd5_location
                              HD5_LOCATION [--generate_heatmap]
                              [--heatmap_location HEATMAP_LOCATION]
@@ -107,6 +108,10 @@ optional arguments:
                          (default: False)
 
   --store_thumbnail     Whether or not save thumbnail with showing the position of extracted patches. If yes, it will be stored at a folder called Thumbnails in HD5 folder.
+                         (default: False)
+
+  --generate_annotation
+                        Whether or not save annotation for slide If yes, it will be stored at a folder called Annotation in HD5 folder. Also a folder called Thubmnails will be created in Annotation that shows the annotation on thumbnails. Only works for Tumor.
                          (default: False)
 
   --patch_location PATCH_LOCATION

@@ -60,6 +60,12 @@ def create_parser(parser):
         "of extracted patches. If yes, it will be stored at a folder called "
         "Thumbnails in HD5 folder.")
 
+    parser.add_argument("--generate_annotation", action='store_true',
+        help="Whether or not save annotation for slide "
+        "If yes, it will be stored at a folder called Annotation in HD5 folder. "
+        "Also a folder called Thubmnails will be created in Annotation that shows the "
+        "annotation on thumbnails. Only works for Tumor.")
+
     parser.add_argument("--patch_location", type=dir_path, default="./",
             help="Path to root directory to extract patches into.")
 

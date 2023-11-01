@@ -15,6 +15,7 @@ import logging
 
 import submodule_utils as utils
 from submodule_utils.thumbnail import PlotThumbnail
+from submodule_utils.fake_annotation import FakeAnnotation
 from submodule_utils.image.extract import SlidePatchExtractor
 from submodule_cv import (ChunkLookupException, setup_log_file,
         gpu_selector, PatchHanger)
@@ -90,7 +91,8 @@ class AutoAnnotator(PatchHanger):
     def __init__(self, config, log_params):
         self.log_file_location = config.log_file_location
         self.log_dir_location = config.log_dir_location
-        self.store_extracted_patches = config.store_extracted_patches or config.patch_location!="./"
+        self.store_extracted_patches = config.store_extracted_patches
+        self.generate_annotation = config.generate_annotation
         self.generate_heatmap = config.generate_heatmap or config.heatmap_location!="./"
         self.patch_location = config.patch_location
         self.hd5_location = config.hd5_location
@@ -218,6 +220,11 @@ class AutoAnnotator(PatchHanger):
                 resize_sizes=self.resize_sizes, shuffle=shuffle_coordinate)
         slide_name = utils.path_to_filename(slide_path)
         hd5_file_path = os.path.join(self.hd5_location, f"{slide_name}.h5")
+        # annotation
+        if self.generate_annotation:
+            fake_annot = FakeAnnotation(slide_name, os_slide, hd5_file_path,
+                                        self.magnification, self.patch_size)
+
         if (self.generate_heatmap) :
             heatmap_filepath = os.path.join(self.heatmap_location,
                     f'heatmap.{slide_name}.h5')
@@ -231,7 +238,7 @@ class AutoAnnotator(PatchHanger):
                 if (shuffle_coordinate and all([x == 0 for x in extracted_patches.values()])):
                     break
                 patch, tile_loc, resized_patches = data
-                tile_x, tile_y, _, _ = tile_loc
+                tile_x, tile_y, x, y = tile_loc
                 if self.evaluation_size:
                     ndpatch = image_preprocess.pillow_image_to_ndarray(
                             resized_patches[self.evaluation_size])
@@ -261,7 +268,6 @@ class AutoAnnotator(PatchHanger):
                     if pred_value >= self.classification_threshold and \
                     pred_value <= self.classification_max_threshold:
                         if (CategoryEnum(pred_label).name.upper() in extracted_patches):
-                            # logger.info(extracted_patches)
                             if ( extracted_patches[CategoryEnum(pred_label).name.upper()]==0):
                                 continue
                             extracted_patches[CategoryEnum(pred_label).name.upper()]-=1
@@ -273,10 +279,12 @@ class AutoAnnotator(PatchHanger):
 
                         if self.is_tumor:
                             if pred_label == 1:
+                                if self.generate_annotation:
+                                    fake_annot.add_poly(x, y)
                                 for resize_size in self.resize_sizes:
                                     patch_path = class_size_to_patch_path[CategoryEnum(1).name][resize_size]
                                     patch_path_ = os.path.join(patch_path,
-                                            "{}_{}.png".format(tile_x * self.patch_size, tile_y * self.patch_size))
+                                            "{}_{}.png".format(x, y))
                                     paths.append(patch_path_)
                                     if self.store_extracted_patches:
                                         resized_patches[resize_size].save(patch_path_)
@@ -284,7 +292,7 @@ class AutoAnnotator(PatchHanger):
                             for resize_size in self.resize_sizes:
                                 patch_path = class_size_to_patch_path[CategoryEnum(pred_label).name][resize_size]
                                 patch_path_ = os.path.join(patch_path,
-                                            "{}_{}.png".format(tile_x * self.patch_size, tile_y * self.patch_size))
+                                            "{}_{}.png".format(x, y))
                                 paths.append(patch_path_)
                                 if self.store_extracted_patches:
                                     resized_patches[resize_size].save(patch_path_)
@@ -297,6 +305,8 @@ class AutoAnnotator(PatchHanger):
         utils.save_hdf5(hd5_file_path, paths, self.patch_size)
         if self.store_thumbnail:
             PlotThumbnail(slide_name, os_slide, hd5_file_path, None)
+        if self.generate_annotation:
+            fake_annot.run()
 
     def produce_args(self, model, cur_slide_paths):
         """Produce arguments to send to patch extraction subprocess. Creates subdirectories for patches if necessary.
