@@ -14,6 +14,7 @@ import logging
 import staintools
 from PIL import Image
 import datetime
+import random
 
 import submodule_utils as utils
 from submodule_utils.thumbnail import PlotThumbnail
@@ -177,7 +178,7 @@ class AutoAnnotator(PatchHanger):
         self.radius = config.radius
         self.use_color_norm = config.use_color_norm
         self.method = config.method
-        self.reference_image = config.reference_image
+        self.reference_images = config.reference_image
         self.use_standarizer = config.use_standarizer
 
         if self.should_use_directory and self.mask_location is not None:
@@ -229,7 +230,7 @@ class AutoAnnotator(PatchHanger):
 
         if self.use_color_norm:
             normalizer = staintools.StainNormalizer(method=self.method)
-            ref_image = np.array(Image.open(self.reference_image))
+            ref_image = np.array(Image.open(random.choice(self.reference_images)))
             if self.use_standarizer:
                 ref_image = staintools.LuminosityStandardizer.standardize(ref_image)
             normalizer.fit(ref_image)

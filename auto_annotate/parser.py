@@ -9,6 +9,8 @@ from submodule_utils.arguments import (
         str_kv, int_kv, subtype_kv, make_dict,
         ParseKVToDictAction, CustomHelpFormatter)
 
+from submodule_utils import DEAFULT_SEED
+
 description="""Use trained model to extract patches.
 
 Auto annotate extracts foreground patches from WSI, predicts whether the patch is a Tumor or Normal (aka. non-tumor) patch, and then extracts and downsamples the patches.
@@ -156,11 +158,15 @@ def create_parser(parser):
     parser.add_argument('--method', type=str, required=False, default='vahadane',
         help="""The Normalization method.""")
 
-    parser.add_argument('--reference_image', type=file_path,
-        help="""The path to reference image for normalization.""")
+    parser.add_argument('--reference_image', nargs="+", type=file_path,
+        help="""The path to reference image(s) for normalization.""")
 
     parser.add_argument('--use_standarizer', action='store_true',
         help="""Whether to apply brighness standarizer on the images.""")
+
+    parser.add_argument("--seed", type=int,
+                                default=DEAFULT_SEED,
+                                help="Seed for random library.")
 
     help_subparsers_load = """Specify how to load slides to annotate.
     There are 2 ways: by manifest and by directory."""
@@ -193,3 +199,5 @@ def create_parser(parser):
     parser_directory.add_argument("--mask_location", type=dir_path,
             help="Path to root directory which contains mask for tissue selection. "
             "It should contain png files or annotation file with label clear_area.")
+
+
