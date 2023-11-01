@@ -103,6 +103,7 @@ class AutoAnnotator(PatchHanger):
                 extensions=['tiff', 'svs', 'scn'])
 
         self.model_file_location = log_params['model_file_location']
+        self.model_config_location = log_params['model_config_location']
         self.instance_name = log_params['instance_name']
         self.CategoryEnum = utils.create_category_enum(True)
         self.print_parameters(config, log_params)
