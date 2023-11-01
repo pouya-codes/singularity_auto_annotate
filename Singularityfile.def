@@ -14,6 +14,8 @@ From: debian:9
     openslide-tools \
     git
     rm -rf /var/lib/apt/lists/*
+    apt-get update
+    apt-get install ffmpeg libsm6 libxext6 -y
     apt-get clean
 
     #Installing Anaconda 3
