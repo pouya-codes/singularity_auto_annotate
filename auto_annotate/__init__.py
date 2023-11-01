@@ -337,10 +337,12 @@ class AutoAnnotator(PatchHanger):
             else:
                 class_size_to_patch_path = { c.name: make_patch_path(c.name) \
                         for c in CategoryEnum }
-            for size_patch_path in class_size_to_patch_path.values():
-                for patch_path in size_patch_path.values():
-                    if not os.path.exists(patch_path):
-                        os.makedirs(patch_path)
+                
+            if self.store_extracted_patches:
+                for size_patch_path in class_size_to_patch_path.values():
+                    for patch_path in size_patch_path.values():
+                        if not os.path.exists(patch_path):
+                            os.makedirs(patch_path)
             arg = (model, slide_path, class_size_to_patch_path)
             args.append(arg)
         return args
