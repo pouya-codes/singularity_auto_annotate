@@ -4,5 +4,4 @@
 __pycache__/
 .vscode
 .pytest_cache
-auto_annotate/tests/mock/logs/*
-auto_annotate/tests/mock/patches/*
+auto_annotate/tests/outputs/
