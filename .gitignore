@@ -7,4 +7,7 @@ __pycache__/
 auto_annotate/tests/outputs/
 submodule_cv/
 submodule_utils/
+submodule_cv
+submodule_utils
 .idea/
+venv/

@@ -390,7 +390,8 @@ class AutoAnnotator(PatchHanger):
 
         with torch.no_grad():
             for data in slide_patches:
-                if (shuffle_coordinate and all([x == 0 for x in extracted_patches.values()])):
+                if (shuffle_coordinate and all([extracted_patches[x] >= self.maximum_number_patches[x]
+                 for x in extracted_patches.keys()])):
                     break
                 patch, tile_loc, resized_patches = data
                 tile_x, tile_y, x, y = tile_loc
