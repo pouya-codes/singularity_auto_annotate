@@ -191,6 +191,7 @@ class AutoAnnotator(PatchHanger):
         CategoryEnum = utils.create_category_enum(self.is_binary,
                 subtypes=self.raw_subtypes)
 
+        logger.info([c.name for c in CategoryEnum])
         logger.info(f'Opening and reading {slide_path} ...')
         os_slide = OpenSlide(slide_path)
     
@@ -203,7 +204,7 @@ class AutoAnnotator(PatchHanger):
                     f'heatmap.{slide_name}.h5')
             hdf = h5py.File(heatmap_filepath, 'w')
             datasets = self.create_hdf_datasets(hdf, os_slide, CategoryEnum)
-        temp = ", ".join(f"{ke}={va}" for ke,va in self.maximum_number_patches.items())
+        temp = ", ".join(f"{ke.upper()}={va}" for ke,va in self.maximum_number_patches.items())
         logger.info(f'Starting Extracting {temp if shuffle_coordinate else len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}')
         extracted_patches = self.maximum_number_patches.copy()
         with torch.no_grad():
@@ -227,10 +228,12 @@ class AutoAnnotator(PatchHanger):
                     pred_label = torch.argmax(pred_prob).type(torch.int).cpu().item()
                     pred_value = torch.max(pred_prob).type(torch.int).cpu().item()
                     if (pred_value >= self.classification_threshold):
-                        if (CategoryEnum(pred_label).name in extracted_patches):
-                            if ( extracted_patches[CategoryEnum(pred_label).name]==0):
+                    
+                        if (CategoryEnum(pred_label).name.upper() in extracted_patches):
+                            # logger.info(extracted_patches)
+                            if ( extracted_patches[CategoryEnum(pred_label).name.upper()]==0):
                                 continue
-                            extracted_patches[CategoryEnum(pred_label).name]-=1
+                            extracted_patches[CategoryEnum(pred_label).name.upper()]-=1
                         if (self.generate_heatmap) :
                             pred_prob = pred_prob.cpu().numpy().tolist()
                             for c in CategoryEnum:
