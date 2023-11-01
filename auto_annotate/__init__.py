@@ -44,8 +44,8 @@ class AutoAnnotator(PatchHanger):
 
     heatmap_location : str
         Path to directory to save the heatmap H5 files (i.e. /path/to/heatmaps/).
-        
-        
+
+
     slide_location : str
         Path to root directory containing all of the slides.
 
@@ -53,7 +53,7 @@ class AutoAnnotator(PatchHanger):
 
     patch_size : int
         Patch size in pixels to extract from slide to use in evaluation.
-    
+
     instance_name : str
 
     model_file_location : str
@@ -143,11 +143,11 @@ class AutoAnnotator(PatchHanger):
         else :
             transforms_array.append(transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)))
         self.transform = transforms.Compose(transforms_array)
-        
+
         self.print_parameters(config, log_params)
 
 
-    
+
     @classmethod
     def from_log_file(cls, config):
         log_params = utils.extract_yaml_from_file(
@@ -180,7 +180,7 @@ class AutoAnnotator(PatchHanger):
          1. Moves a sliding, non-overlaping window to extract each patch to Pillow patch.
          2. Converts patch to ndarray ndpatch and skips to next patch if background
          3. Converts ndpatch to tensor and evaluates with model
-         4. If model detects tumor, then save all extracted resizes to patch 
+         4. If model detects tumor, then save all extracted resizes to patch
 
         Parameters
         ----------
@@ -201,7 +201,7 @@ class AutoAnnotator(PatchHanger):
 
         logger.info(f'Opening and reading {slide_path} ...')
         os_slide = OpenSlide(slide_path)
-    
+
         shuffle_coordinate = len(self.maximum_number_patches)>0
         slide_patches = SlidePatchExtractor(os_slide, self.patch_size,
                 resize_sizes=self.resize_sizes, shuffle=shuffle_coordinate)
@@ -232,7 +232,10 @@ class AutoAnnotator(PatchHanger):
                         cur_data = self.transform(patch)
                     # cur_data = tensor_preprocess.ndarray_image_to_tensor(ndpatch)
                     # convert tensor image to batch of size 1
-                    cur_data = cur_data.cuda().unsqueeze(0)
+                    if torch.cuda.is_available():
+                        cur_data = cur_data.cuda().unsqueeze(0)
+                    else:
+                        cur_data = cur_data.unsqueeze(0)
                     _, pred_prob, _ = model.forward(cur_data)
                     pred_prob = torch.squeeze(pred_prob)
 
@@ -250,7 +253,7 @@ class AutoAnnotator(PatchHanger):
                             pred_prob = pred_prob.cpu().numpy().tolist()
                             for c in CategoryEnum:
                                 datasets[c.name][tile_y, tile_x] = pred_prob[c.value]
-                        
+
                         if self.store_extracted_patches:
                             if self.is_tumor:
                                 if pred_label == 1:
@@ -280,7 +283,7 @@ class AutoAnnotator(PatchHanger):
 
         cur_slide_paths : list of str
             List of slide paths. Each path is sent to a subprocess to get slide to evaluate.
-        
+
         device : torch.device
             to tell evaluation subprocess which GPU / CPU to send tensor
 
@@ -306,7 +309,7 @@ class AutoAnnotator(PatchHanger):
                             self.patch_location, class_name, slide_id,
                             str(resize_size), str(self.get_magnification(resize_size)))
                 return size_patch_path
-            
+
             if self.is_tumor:
                 tumor_label = CategoryEnum(1).name
                 class_size_to_patch_path = { tumor_label: make_patch_path(tumor_label) }
@@ -330,11 +333,16 @@ class AutoAnnotator(PatchHanger):
             print(f"Number of CPU processes of {self.n_process} is too high. Setting to {self.MAX_N_PROCESS}")
             self.n_process = self.MAX_N_PROCESS
         print(f"Number of CPU processes: {self.n_process}")
-        gpu_devices = gpu_selector(self.gpu_id, self.num_gpus)
-        # create torch.device for selected GPU device 
-        # device = torch.device(f'cuda:{torch.cuda.current_device()}')
         mp.set_start_method('spawn')
-        model = self.build_model(gpu_devices)
+        # create torch.device for selected GPU device
+        # device = torch.device(f'cuda:{torch.cuda.current_device()}')
+        if torch.cuda.is_available():
+            print("Start using GPU ... ")
+            gpu_devices = gpu_selector(self.gpu_id, self.num_gpus)
+            model = self.build_model(gpu_devices)
+        else:
+            print("Start using CPU ... ")
+            model = self.build_model(None)
         model.load_state(self.model_file_location,)
         model.model.eval()
         model.model.share_memory()
