@@ -52,6 +52,10 @@ def create_parser(parser):
     parser.add_argument("--store_extracted_patches", action='store_true',
             help="Store extracted patches. Default does not store extracted patches.")
 
+    parser.add_argument("--store_patches_statistics", action='store_true',
+            help="Store statistics of the extracting patches process as a csv file at log_dir_location. this file "
+                 "contains [slide_name, number of extracted patches for each class]. Default does not store the csv file.")
+
     parser.add_argument("--store_thumbnail", action='store_true',
             help="Whether or not save thumbnail with showing the position "
             "of extracted patches. If yes, it will be stored at a folder called "
@@ -131,9 +135,11 @@ def create_parser(parser):
 
     parser.add_argument("--maximum_number_patches", nargs='+', type=subtype_kv,
             action=ParseKVToDictAction, default={},
-            help="Caution: when you use this flag the code while shuffles the extracted patches from each slide.space separated words describing subtype=maximum_number_of_extracted_patches pairs for each slide. "
+            help="Caution: when you use this flag the code while shuffles the extracted patches from each slide. "
+                 "Space separated words describing subtype=maximum_number_of_extracted_patches pairs for each slide. "
             "Example: if want to extract 500 Tumor, 0 Normal patches and unlimited POLE patches "
-            "then the input should be 'Tumor=500 Normal=0 POLE=-1'")
+            "then the input should be 'TUMOR=500 NORMAL=0 POLE=-1'"
+                 "You need to pass the class names in uppercase")
 
     parser.add_argument("--use_radius", action='store_true',
             help="Activating this subparser will enable extracting "
