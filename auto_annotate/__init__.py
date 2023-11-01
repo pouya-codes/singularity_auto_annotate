@@ -316,6 +316,7 @@ class AutoAnnotator(PatchHanger):
         CategoryEnum = utils.create_category_enum(self.is_binary,
                 subtypes=self.raw_subtypes)
         paths = []
+        extracted_coordinates = []
         # If we are interested in one category such as Tumor
         # Only we need Tumor's probability
         if self.label is not None:
@@ -368,6 +369,8 @@ class AutoAnnotator(PatchHanger):
                             check_tissue = self.check_tissue(slide_name, x, y)
                             if not check_tissue:
                                 continue
+                        if (x, y) in extracted_coordinates: # it has been previously extracted (usefull for radius)
+                            continue
                         tile_x = int(x / stride)
                         tile_y = int(y / stride)
                         if self.evaluation_size:
@@ -395,11 +398,11 @@ class AutoAnnotator(PatchHanger):
                                 if ( extracted_patches[CategoryEnum(pred_label).name.upper()]==0):
                                     continue
                                 extracted_patches[CategoryEnum(pred_label).name.upper()]-=1
+                                extracted_coordinates.append((x, y))
                             if (self.generate_heatmap) :
                                 pred_prob = pred_prob.cpu().numpy().tolist()
                                 for c in CategoryEnum:
                                     datasets[c.name][tile_y, tile_x] = pred_prob[c.value]
-
 
                             if self.is_tumor:
                                 if pred_label == 1:
