@@ -16,4 +16,3 @@ def clean_output():
     os.mkdir(OUTPUT_PATCH_DIR)
     os.mkdir(OUTPUT_LOG_DIR)
     yield None
-

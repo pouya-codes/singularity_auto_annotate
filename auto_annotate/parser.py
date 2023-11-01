@@ -9,15 +9,35 @@ from submodule_utils.arguments import (
         str_kv, int_kv, subtype_kv, make_dict,
         ParseKVToDictAction, CustomHelpFormatter)
 
-description="""
-"""
+description="""Use trained model to extract patches.
 
-epilog="""
-TODO: --slide_location should be dir_path
-TODO: refactor parser out of app.py
-TODO: fix --patch_location help
-TODO: tests with updated submodule code
-"""
+Auto annotate extracts foreground patches from WSI, predicts whether the patch is a Tumor or Normal (aka. non-tumor) patch, and then extracts and downsamples the patches.
+
+If slide dataset has a slide_pattern of 'subtype'. Each patch dataset has the pattern 'annotation/subtype/slide/patch_size/magnification'. For example, if the slide paths look like:
+
+/path/to/slides/MMRd/VOA-1099A.tiff
+/path/to/slides/POLE/VOA-1932A.tiff
+/path/to/slides/p53abn/VOA-3088B.tiff
+/path/to/slides/p53wt/VOA-3266C.tiff
+
+And we use '--resize_sizes 512' then the extracted patch paths will look something like:
+
+/path/to/patches/Tumor/MMRd/VOA-1099A/512/20/30140_12402.png
+/path/to/patches/Normal/MMRd/VOA-1099A/512/20/42038_12402.png
+...
+/path/to/patches/Tumor/POLE/VOA-1932A/512/20/42038_12402.png
+/path/to/patches/Normal/POLE/VOA-1932A/512/20/30140_12402.png
+...
+/path/to/patches/Tumor/p53abn/VOA-3088B/512/20/42038_12402.png
+/path/to/patches/Normal/p53abn/VOA-3088B/512/20/30140_12402.png
+...
+/path/to/patches/Tumor/p53wt/VOA-3266C/512/20/30140_12402.png
+/path/to/patches/Normal/p53wt/VOA-3266C/512/20/42038_12402.png
+...
+
+This component looks in the YAML section of the training log to obtain the trained model and it's hyperparameters."""
+
+epilog=None
 
 @manifest_arguments(default_component_id="auto_annotate",
         description=description, epilog=epilog)
@@ -32,7 +52,7 @@ def create_parser(parser):
     parser.add_argument("--patch_location", type=dir_path, required=False,
             help="Path to root directory to extract patches into.")
 
-    parser.add_argument("--slide_location", type=str, required=True,
+    parser.add_argument("--slide_location", type=str, required=dir_path,
             help="Path to root directory containing all of the slides.")
     
     parser.add_argument("--slide_pattern", type=str,
