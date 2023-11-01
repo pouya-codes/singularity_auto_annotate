@@ -578,7 +578,6 @@ class AutoAnnotator(PatchHanger):
             model.load_state(self.model_file_location, )
         model.model.eval()
         model.model.share_memory()
-        self.n_process = 1
         with torch.no_grad():
             n_slides = len(self.slide_paths)
             prefix = f'Generating from {n_slides} slides: '
