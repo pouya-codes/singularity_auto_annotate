@@ -69,6 +69,9 @@ def create_parser(parser):
                 help="Minimum obtained probability for the most probable class."
                 "Default: 0")
 
+    parser.add_argument("--classification_max_threshold", type=float, default=1.0, required=False,
+                help="Maximum obtained probability for the most probable class."
+                "Default: 1.0")
 
     parser.add_argument("--slide_pattern", type=str,
             default='subtype',

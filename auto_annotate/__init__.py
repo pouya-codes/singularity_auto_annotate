@@ -94,6 +94,7 @@ class AutoAnnotator(PatchHanger):
         self.patch_location = config.patch_location
         self.heatmap_location = config.heatmap_location
         self.classification_threshold = config.classification_threshold
+        self.classification_max_threshold = config.classification_max_threshold
         self.slide_location = config.slide_location
         self.slide_pattern = utils.create_patch_pattern(config.slide_pattern)
         self.patch_size = config.patch_size
@@ -250,7 +251,8 @@ class AutoAnnotator(PatchHanger):
                     pred_label = torch.argmax(pred_prob).type(torch.int).cpu().item()
                     pred_value = torch.max(pred_prob).type(torch.float).cpu().item()
 
-                    if (pred_value >= self.classification_threshold):
+                    if pred_value >= self.classification_threshold and \
+                       pred_value <= self.classification_max_threshold:
 
                         if (CategoryEnum(pred_label).name.upper() in extracted_patches):
                             # logger.info(extracted_patches)
