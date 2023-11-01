@@ -66,6 +66,9 @@ def create_parser(parser):
     parser.add_argument("--patch_location", type=dir_path, default="./",
             help="Path to root directory to extract patches into.")
 
+    parser.add_argument("--patch_overlap", type=float, default=0,
+            help="Overlap between extracted patches.")
+
     parser.add_argument("--hd5_location", type=dir_path, required=True,
             help="Path to root directory to save hd5 into.")
 
@@ -129,6 +132,7 @@ def create_parser(parser):
     parser.add_argument("--use_radius", action='store_true',
             help="Activating this subparser will enable extracting "
             "all patches within radius of the coordinate.")
+    
     parser.add_argument("--radius", type=int, default=1,
             help="From each selected coordinate, all its neighbours will be extracted. "
             "This number will be multiplied by the patch size."

@@ -73,7 +73,8 @@ usage: app.py from-arguments [-h] --log_file_location LOG_FILE_LOCATION
                              --log_dir_location LOG_DIR_LOCATION
                              [--store_extracted_patches] [--store_thumbnail]
                              [--generate_annotation]
-                             [--patch_location PATCH_LOCATION] --hd5_location
+                             [--patch_location PATCH_LOCATION]
+                             [--patch_overlap PATCH_OVERLAP] --hd5_location
                              HD5_LOCATION [--generate_heatmap]
                              [--heatmap_location HEATMAP_LOCATION]
                              [--classification_threshold CLASSIFICATION_THRESHOLD]
@@ -124,6 +125,10 @@ optional arguments:
   --patch_location PATCH_LOCATION
                         Path to root directory to extract patches into.
                          (default: ./)
+
+  --patch_overlap PATCH_OVERLAP
+                        Overlap between extracted patches.
+                         (default: 0)
 
   --hd5_location HD5_LOCATION
                         Path to root directory to save hd5 into.

@@ -26,9 +26,12 @@ from submodule_utils.metadata.tissue_mask import TissueMask
 
 logger = logging.getLogger('auto_annotate')
 
-def get_tile_dimensions(os_slide, patch_size):
+def get_tile_dimensions(os_slide, patch_size, patch_overlap):
     width, height = os_slide.dimensions
-    return int(width / patch_size), int(height / patch_size)
+    stride = int((1-patch_overlap)*patch_size)
+    tile_width  = int((width - patch_size)/stride + 1)
+    tile_height = int((height - patch_size)/stride + 1)
+    return tile_width, tile_height
 
 
 class AutoAnnotator(PatchHanger):
@@ -153,6 +156,7 @@ class AutoAnnotator(PatchHanger):
         self.generate_annotation = config.generate_annotation
         self.generate_heatmap = config.generate_heatmap or config.heatmap_location!="./"
         self.patch_location = config.patch_location
+        self.patch_overlap = config.patch_overlap
         self.hd5_location = config.hd5_location
         self.heatmap_location = config.heatmap_location
         self.classification_threshold = config.classification_threshold
@@ -239,7 +243,7 @@ class AutoAnnotator(PatchHanger):
         print('...') # end YAML
 
     def create_hdf_datasets(self, hdf, os_slide, CategoryEnum):
-        tile_width, tile_height = get_tile_dimensions(os_slide, self.patch_size)
+        tile_width, tile_height = get_tile_dimensions(os_slide, self.patch_size, self.patch_overlap)
         group_name = "{}/{}".format(self.patch_size, self.magnification)
         group = hdf.require_group(group_name)
         datasets = { }
@@ -321,7 +325,7 @@ class AutoAnnotator(PatchHanger):
         os_slide = OpenSlide(slide_path)
 
         shuffle_coordinate = len(self.maximum_number_patches)>0
-        slide_patches = SlidePatchExtractor(os_slide, self.patch_size,
+        slide_patches = SlidePatchExtractor(os_slide, self.patch_size, patch_overlap=self.patch_overlap,
                 resize_sizes=self.resize_sizes, shuffle=shuffle_coordinate)
         slide_name = utils.path_to_filename(slide_path)
         hd5_file_path = os.path.join(self.hd5_location, f"{slide_name}.h5")
@@ -349,8 +353,7 @@ class AutoAnnotator(PatchHanger):
                     if not check_tissue:
                         continue
                 if self.check_background(resized_patches, patch):
-                    # stride = int((1-self.patch_overlap)*self.patch_size)
-                    stride = self.patch_size
+                    stride = int((1-self.patch_overlap)*self.patch_size)
                     if self.use_radius:
                         Coords = utils.get_circular_coordinates(self.radius, x, y, stride,
                                                 os_slide.dimensions, self.patch_size)
