@@ -88,7 +88,33 @@ class AutoAnnotator(PatchHanger):
         return int(float(resize_size) * float(self.FULL_MAGNIFICATION) \
             / float(self.patch_size))
 
+    @property
+    def should_use_manifest(self):
+        return self.load_method == 'use-manifest'
+
+    @property
+    def should_use_directory(self):
+        return self.load_method == 'use-directory'
+
+    def get_slide_paths(self):
+        """Get paths of slides that should be extracted.
+        """
+        if self.should_use_manifest:
+            return self.manifest['slide']
+        elif self.should_use_directory:
+            return utils.get_paths(self.slide_location, self.slide_pattern,
+                    extensions=['tiff', 'tif', 'svs', 'scn'])
+        else:
+            raise NotImplementedError()
+
     def __init__(self, config, log_params):
+
+        self.load_method = config.load_method
+        if self.should_use_manifest:
+            self.manifest = utils.read_manifest(config.manifest_location)
+        elif self.should_use_directory:
+            self.slide_location = config.slide_location
+            self.slide_pattern = utils.create_patch_pattern(config.slide_pattern)
         self.log_file_location = config.log_file_location
         self.log_dir_location = config.log_dir_location
         self.store_extracted_patches = config.store_extracted_patches
@@ -100,11 +126,10 @@ class AutoAnnotator(PatchHanger):
         self.classification_threshold = config.classification_threshold
         self.classification_max_threshold = config.classification_max_threshold
         self.label = config.label
-        self.slide_location = config.slide_location
-        self.slide_pattern = utils.create_patch_pattern(config.slide_pattern)
         self.patch_size = config.patch_size
         self.is_tumor = config.is_tumor
         self.store_thumbnail = config.store_thumbnail
+
         if config.resize_sizes:
             self.resize_sizes = config.resize_sizes
         else:
@@ -132,8 +157,7 @@ class AutoAnnotator(PatchHanger):
             self.n_process = config.num_patch_workers
         else:
             self.n_process = psutil.cpu_count()
-        self.slide_paths = utils.get_paths(self.slide_location, self.slide_pattern,
-                extensions=['tiff', 'svs', 'scn'])
+        self.slide_paths = self.get_slide_paths()
         self.slide_idx = config.slide_idx
 
         # log parameters
@@ -335,7 +359,16 @@ class AutoAnnotator(PatchHanger):
             subtypes=self.raw_subtypes)
         args = []
         for slide_path in cur_slide_paths:
-            slide_id = utils.create_patch_id(slide_path, self.slide_pattern)
+            if self.should_use_manifest:
+                slide_name = utils.path_to_filename(slide_path)
+                if 'subtype' in self.manifest:
+                    idx = self.manifest['slide'].index(slide_path)
+                    subtype_ = self.manifest['subtype'][idx]
+                    slide_id = f"{subtype_}/{slide_name}"
+                else:
+                    slide_id = slide_name
+            else:
+                slide_id = utils.create_patch_id(slide_path, self.slide_pattern)
 
             def make_patch_path(class_name):
                 size_patch_path = { }

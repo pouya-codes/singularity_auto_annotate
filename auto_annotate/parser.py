@@ -49,9 +49,6 @@ def create_parser(parser):
             help="Path to log directory to save testing logs (i.e. "
             "/path/to/logs/testing/).")
 
-    parser.add_argument("--slide_location", type=dir_path, required=True,
-            help="Path to root directory containing all of the slides.")
-
     parser.add_argument("--store_extracted_patches", action='store_true',
             help="Store extracted patches. Default does not store extracted patches.")
 
@@ -89,13 +86,6 @@ def create_parser(parser):
                 help="Only search for this label in output probability of the model"
                 "useful when you set the --classification_threshold threshold and you want"
                 "consider only one of the labels such as tumor")
-
-    parser.add_argument("--slide_pattern", type=str,
-            default='subtype',
-            help="'/' separated words describing the directory structure of the "
-            "slide paths. Normally slides paths look like "
-            "/path/to/slide/rootdir/subtype/slide.svs and if slide paths are "
-            "/path/to/slide/rootdir/slide.svs then simply pass ''.")
 
     parser.add_argument("--patch_size", type=int,
             default=1024, required=True,
@@ -135,3 +125,33 @@ def create_parser(parser):
                 help="Caution: when you use this flag the code while shuffles the extracted patches from each slide.space separated words describing subtype=maximum_number_of_extracted_patches pairs for each slide. "
                 "Example: if want to extract 500 Tumor, 0 Normal patches and unlimited POLE patches "
                 "then the input should be 'Tumor=500 Normal=0 POLE=-1'")
+
+    help_subparsers_load = """Specify how to load slides to annotate.
+    There are 2 ways: by manifest and by directory."""
+    subparsers_load = parser.add_subparsers(dest='load_method',
+            required=True,
+            parser_class=AIMArgumentParser,
+            help=help_subparsers_load)
+
+    help_manifest = """Use manifest file to locate slides.
+    a CSV file with minimum of 1 column and maximum of 3 columns. The name of columns
+    should be among ['slide', 'annotation', 'subtype']. slide must be one of the columns.
+    }"""
+    parser_manifest = subparsers_load.add_parser("use-manifest",
+            help=help_manifest)
+    parser_manifest.add_argument("--manifest_location", type=file_path, required=True,
+            help="Path to manifest CSV file with three columns of slide, "
+            "annotation, and subtype.")
+
+    parser_directory = subparsers_load.add_parser("use-directory",
+            help="Use a rootdir to locate slidesIt is expected that slide paths "
+            "have the structure '/path/to/rootdir/slide_pattern/slide_name.extension' where slide_pattern is usually 'subtype'. Patient IDs are extrapolated from slide_name using known, hardcoded regex.")
+
+    parser_directory.add_argument("--slide_location", type=dir_path, required=True,
+            help="Path to root directory containing all of the slides.")
+    parser_directory.add_argument("--slide_pattern", type=str,
+                default='subtype',
+                help="'/' separated words describing the directory structure of the "
+                "slide paths. Normally slides paths look like "
+                "/path/to/slide/rootdir/subtype/slide.svs and if slide paths are "
+                "/path/to/slide/rootdir/slide.svs then simply pass ''.")
