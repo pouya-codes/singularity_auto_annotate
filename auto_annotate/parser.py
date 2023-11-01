@@ -9,8 +9,6 @@ from submodule_utils.arguments import (
         str_kv, int_kv, subtype_kv, make_dict,
         ParseKVToDictAction, CustomHelpFormatter)
 
-from auto_annotate import *
-
 description="""
 """
 
@@ -67,6 +65,6 @@ def create_parser(parser):
     parser.add_argument("--gpu_id", type=int, required=False,
             help="The ID of GPU to select. Default uses GPU with the most free memory.")
     
-#     parser.add_argument("--num_gpus", type=int, required=False, default=1,
-#                 help="The number of GPUs to use. "
-#                 "Default uses a GPU with the most free memory.")
+    parser.add_argument("--num_gpus", type=int, required=False, default=1,
+                help="The number of GPUs to use. "
+                "Default uses a GPU with the most free memory.")

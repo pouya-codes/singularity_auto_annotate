@@ -76,6 +76,7 @@ class AutoAnnotator(PatchHanger):
             / float(self.patch_size))
 
     def __init__(self, config, log_params):
+        self.log_file_location = config.log_file_location
         self.log_dir_location = config.log_dir_location
         self.patch_location = config.patch_location
         self.slide_location = config.slide_location
@@ -106,6 +107,12 @@ class AutoAnnotator(PatchHanger):
         self.CategoryEnum = utils.create_category_enum(True)
         self.print_parameters(config, log_params)
     
+    @classmethod
+    def from_log_file(cls, config):
+        log_params = utils.extract_yaml_from_file(
+                config.log_file_location)
+        return cls(config, log_params)
+
     def print_parameters(self, config, log_params):
         """Print argument parameters"""
         parameters = config.__dict__.copy()
@@ -220,7 +227,6 @@ class AutoAnnotator(PatchHanger):
         """Run auto annotation
         """
         setup_log_file(self.log_dir_location, self.instance_name)
-        self.print_parameters()
         print(f"Train instance name: {self.instance_name}")
         if self.n_process > self.MAX_N_PROCESS:
             print(f"Number of CPU processes of {self.n_process} is too high. Setting to {self.MAX_N_PROCESS}")
