@@ -237,9 +237,10 @@ class AutoAnnotator(PatchHanger):
                     pred_prob = torch.squeeze(pred_prob)
 
                     pred_label = torch.argmax(pred_prob).type(torch.int).cpu().item()
-                    pred_value = torch.max(pred_prob).type(torch.int).cpu().item()
+                    pred_value = torch.max(pred_prob).type(torch.float).cpu().item()
+
                     if (pred_value >= self.classification_threshold):
-                    
+
                         if (CategoryEnum(pred_label).name.upper() in extracted_patches):
                             # logger.info(extracted_patches)
                             if ( extracted_patches[CategoryEnum(pred_label).name.upper()]==0):
