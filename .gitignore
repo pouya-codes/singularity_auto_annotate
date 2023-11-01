@@ -5,3 +5,6 @@ __pycache__/
 .vscode
 .pytest_cache
 auto_annotate/tests/outputs/
+submodule_cv/
+submodule_utils/
+.idea/
