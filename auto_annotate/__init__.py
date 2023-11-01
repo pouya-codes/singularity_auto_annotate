@@ -292,7 +292,6 @@ class AutoAnnotator(PatchHanger):
                             datasets[c.name][tile_y, tile_x] = 0.
         temp = ", ".join(f"{key}={val-extracted_patches[key]}" for key,val in self.maximum_number_patches.items())
         logger.info(f'Finished Extracting {temp if shuffle_coordinate else len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}')
-        asset_dict = {'paths': paths}
         utils.save_hdf5(hd5_file_path, paths, self.patch_size)
 
     def produce_args(self, model, cur_slide_paths):
