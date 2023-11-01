@@ -224,12 +224,16 @@ class AutoAnnotator(PatchHanger):
 
                     pred_label = torch.argmax(pred_prob).type(torch.int).cpu().item()
                     pred_value = torch.max(pred_prob).type(torch.int).cpu().item()
-                    if (pred_value >= self.classification_threshold and extracted_patches[CategoryEnum(pred_label).name]!=0):
+                    if (pred_value >= self.classification_threshold):
+                        if (CategoryEnum(pred_label).name in extracted_patches):
+                            if ( extracted_patches[CategoryEnum(pred_label).name]==0):
+                                continue
+                            extracted_patches[CategoryEnum(pred_label).name]-=1
                         if (self.generate_heatmap) :
                             pred_prob = pred_prob.cpu().numpy().tolist()
                             for c in CategoryEnum:
                                 datasets[c.name][tile_y, tile_x] = pred_prob[c.value]
-                        extracted_patches[CategoryEnum(pred_label).name]-=1
+                        
                         if self.store_extracted_patches:
                             if self.is_tumor:
                                 if pred_label == 1:
