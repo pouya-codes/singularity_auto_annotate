@@ -1,18 +1,5 @@
 # Auto Annotate
 
-**Caution: you need to check the error log constantly to monitor _CUDA out of memory_ error. You need to use a smaller number for _--num_patch_workers_ if you get this error.**
-
-To build the singularity image do:
-
-```
-singularity build --remote auto_annotate.sif Singularityfile.def
-```
-
-In the SH file, you should bind the path to the slides if the slides in your slides directory specified by `--slide_location` is symlinked.
-
-```
-singularity run     -B /projects/ovcare/classification/cchen     -B /projects/ovcare/WSI     auto_annotate.sif     from-experiment-manifest /path/to/experiment.yaml ```
-
 ### Development Information ###
 
 ```
@@ -22,9 +9,14 @@ Developer: Colin Chen
 Version: 1.0
 ```
 
+**Before runing any experiment to be sure you are using the latest commits of all modules run the following script:**
+```
+(cd /projects/ovcare/classification/singularity_modules ; ./update_modules.sh --bcgsc-pass your/bcgsc/path)
+```
+
 ### Usage ###
 
-
+```
 usage: app.py [-h] {from-experiment-manifest,from-arguments} ...
 
 Use trained model to extract patches.
@@ -77,40 +69,34 @@ optional arguments:
 
   --component_id COMPONENT_ID
 
-usage: app.py from-arguments [-h] --log_file_location LOG_FILE_LOCATION
-                             --log_dir_location LOG_DIR_LOCATION
-                             --slide_location SLIDE_LOCATION
-                             [--store_extracted_patches]
+usage: app.py from-arguments [-h] [--store_extracted_patches]
                              [--patch_location PATCH_LOCATION]
-                             [--generate_heatmap] --heatmap_location
-                             HEATMAP_LOCATION
+                             [--generate_heatmap]
+                             [--heatmap_location HEATMAP_LOCATION]
                              [--classification_threshold CLASSIFICATION_THRESHOLD]
                              [--classification_max_threshold CLASSIFICATION_MAX_THRESHOLD]
-                             [--label LABEL]
-                             [--slide_pattern SLIDE_PATTERN] --patch_size
-                             PATCH_SIZE
+                             [--label LABEL] [--slide_pattern SLIDE_PATTERN]
                              [--resize_sizes RESIZE_SIZES [RESIZE_SIZES ...]]
                              [--evaluation_size EVALUATION_SIZE] [--is_tumor]
                              [--num_patch_workers NUM_PATCH_WORKERS]
                              [--gpu_id GPU_ID] [--num_gpus NUM_GPUS]
-                             [--subtype_filter SUBTYPE=NUM]
-                             [--slide_idx IDX]
+                             [--subtype_filter SUBTYPE_FILTER [SUBTYPE_FILTER ...]]
+                             [--slide_idx SLIDE_IDX]
                              [--maximum_number_patches MAXIMUM_NUMBER_PATCHES [MAXIMUM_NUMBER_PATCHES ...]]
+                             log_file_location log_dir_location slide_location
+                             patch_size
+
+positional arguments:
+  log_file_location     Path to the log file produced during training.
+
+  log_dir_location      Path to log directory to save testing logs (i.e. /path/to/logs/testing/).
+
+  slide_location        Path to root directory containing all of the slides.
+
+  patch_size            Patch size in pixels to extract from slide to use in evaluation.
 
 optional arguments:
   -h, --help            show this help message and exit
-
-  --log_file_location LOG_FILE_LOCATION
-                        Path to the log file produced during training.
-                         (default: None)
-
-  --log_dir_location LOG_DIR_LOCATION
-                        Path to log directory to save testing logs (i.e. /path/to/logs/testing/).
-                         (default: None)
-
-  --slide_location SLIDE_LOCATION
-                        Path to root directory containing all of the slides.
-                         (default: None)
 
   --store_extracted_patches
                         Store extracted patches. Default does not store extracted patches.
@@ -118,34 +104,29 @@ optional arguments:
 
   --patch_location PATCH_LOCATION
                         Path to root directory to extract patches into.
-                         (default: None)
+                         (default: ./)
 
   --generate_heatmap    Generate heatmaps. Default does not generate heatmap.
                          (default: False)
 
   --heatmap_location HEATMAP_LOCATION
                         Path to directory to save the heatmap H5 files (i.e. /path/to/heatmaps/).
-                         (default: None)
+                         (default: ./)
 
   --classification_threshold CLASSIFICATION_THRESHOLD
-                        Minimum obtained probability for the most probable class.
+                        Minimum obtained probability for the most probable class
                          (default: 0)
 
   --classification_max_threshold CLASSIFICATION_MAX_THRESHOLD
-                        Maximum obtained probability for the most probable class.
-                         (default: 1)
+                        Maximum obtained probability for the most probable class
+                         (default: 1.0)
 
-  --label: LABEL
-                        If we are interested in only one subtype/category, set this label
-                        so we look at the output probability of it.
+  --label LABEL         Only search for this label in output probability of the modeluseful when you set the --classification_threshold threshold and you wantconsider only one of the labels such as tumor
+                         (default: None)
 
   --slide_pattern SLIDE_PATTERN
                         '/' separated words describing the directory structure of the slide paths. Normally slides paths look like /path/to/slide/rootdir/subtype/slide.svs and if slide paths are /path/to/slide/rootdir/slide.svs then simply pass ''.
                          (default: subtype)
-
-  --patch_size PATCH_SIZE
-                        Patch size in pixels to extract from slide to use in evaluation.
-                         (default: 1024)
 
   --resize_sizes RESIZE_SIZES [RESIZE_SIZES ...]
                         List of patch sizes in pixels to resize the extracted patchs and save. Each size should be at most patch_size. Default does not resize.
@@ -168,15 +149,57 @@ optional arguments:
   --num_gpus NUM_GPUS   The number of GPUs to use. Default uses a GPU with the most free memory.
                          (default: 1)
 
+  --subtype_filter SUBTYPE_FILTER [SUBTYPE_FILTER ...]
+                        Only apply auto_annotation on one subtype. It should be in a format of'subtype'=num, when num is the part of the slides of this subtype that we apply.
+                         (default: {})
+
+  --slide_idx SLIDE_IDX
+                        Select a specif slide from all the slides in that directory (usefull for running multiple jobs).
+                         (default: None)
+
   --maximum_number_patches MAXIMUM_NUMBER_PATCHES [MAXIMUM_NUMBER_PATCHES ...]
                         Caution: when you use this flag the code while shuffles the extracted patches from each slide.space separated words describing subtype=maximum_number_of_extracted_patches pairs for each slide. Example: if want to extract 500 Tumor, 0 Normal patches and unlimited POLE patches then the input should be 'Tumor=500 Normal=0 POLE=-1'
                          (default: {})
 
-  --subtype_filter
-                       Only apply auto_annotation on one subtype. It should be in a format of 'subtype'=num, when num is the part of the slides of this subtype that we apply. (This is useful for running multiple jobs on different nodes. Each subtype-> a job)
-                       (default: {})
-
-  --slide_idx
-                      Select a specif slide from all the slides in that directory (usefull for running multiple jobs)
-                      (default: None)
 ```
+
+**Caution: you need to check the error log constantly to monitor _CUDA out of memory_ error. You need to use a smaller number for _--num_patch_workers_ if you get this error.**
+
+
+In order to increase the speed of auto_annotate, We should run parralel jobs. In order to achieve this, you should use this bash script file:
+```
+#!/bin/bash
+##!/bin/bash
+#SBATCH --job-name annotate
+#SBATCH --cpus-per-task 1
+#SBATCH --array=1-793
+#SBATCH --output path/to/folder/%a.out
+#SBATCH --error path/to/folder/%a.err
+#SBATCH --workdir /projects/ovcare/classification/singularity_modules/singularity_auto_annotate
+#SBATCH --mem=6G
+#SBATCH --mail-type=FAIL
+#SBATCH --mail-user=<email>
+#SBATCH -p upgrade
+
+singularity run -B /projects/ovcare/classification -B /projects/ovcare/WSI singularity_auto_annotate.sif from-arguments
+ --log_file_location path/to/file
+ --log_dir_location path/to/folder
+ --patch_location path/to/folder
+ --slide_location path/to/folder
+ --slide_pattern=
+ --patch_size 1024
+ --resize_sizes 512
+ --evaluation_size 512
+ --is_tumor True
+ --store_extracted_patches True
+ --classification_threshold 0.9
+ --num_patch_workers 1
+ --slide_idx 
+ --maximum_number_patches Tumor=400 Stroma=400
+
+```
+
+The number of arrays should be set to value of `num_slides / num_patch_workers`.
+For fastest way, set the `num_patch_workers=1`, then number of arrays is `num_slides`.
+If you want to extracted tumor patches with probability between 0.4 and 0.6, you should set `classification_threshold=0.4`, `classification_max_threshold=0.6`, and `label=Tumor`.
+
