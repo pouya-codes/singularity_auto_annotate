@@ -4,9 +4,9 @@
 
 ```
 Date Created: 22 July 2020
-Last Update: May 18 2021 by Amirali
+Last Update: May 19 2021 by Amirali
 Developer: Colin Chen
-Version: 1.2
+Version: 1.2.1
 ```
 
 **Before running any experiment to be sure you are using the latest commits of all modules run the following script:**
@@ -84,7 +84,7 @@ usage: app.py from-arguments [-h] --log_file_location LOG_FILE_LOCATION
                              [--evaluation_size EVALUATION_SIZE] [--is_tumor]
                              [--num_patch_workers NUM_PATCH_WORKERS]
                              [--gpu_id GPU_ID] [--num_gpus NUM_GPUS]
-                             [--slide_idx SLIDE_IDX]
+                             [--old_version] [--slide_idx SLIDE_IDX]
                              [--maximum_number_patches MAXIMUM_NUMBER_PATCHES [MAXIMUM_NUMBER_PATCHES ...]]
 
 optional arguments:
@@ -161,6 +161,9 @@ optional arguments:
   --num_gpus NUM_GPUS   The number of GPUs to use. Default uses a GPU with the most free memory.
                          (default: 1)
 
+  --old_version         Convert trained model on previous version to the current one
+                         (default: False)
+
   --slide_idx SLIDE_IDX
                         Select a specif slide from all the slides in that directory (usefull for running multiple jobs).
                          (default: None)
@@ -217,3 +220,4 @@ Before running on Numbers, you need to edit these two lines at this path /projec
 2. Comment line 31
 
 If you need to run on DGX, you need to do the opposite action.
+

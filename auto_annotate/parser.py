@@ -113,6 +113,9 @@ def create_parser(parser):
                 help="The number of GPUs to use. "
                 "Default uses a GPU with the most free memory.")
 
+    parser.add_argument("--old_version", action='store_true',
+            help="Convert trained model on previous version to the current one")
+
     parser.add_argument("--slide_idx", type=int,
             help="Select a specif slide from all the slides in that directory (usefull for running multiple jobs).")
 

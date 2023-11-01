@@ -119,7 +119,7 @@ class AutoAnnotator(PatchHanger):
         # self.extract_foreground = extract_foreground
         self.gpu_id = config.gpu_id
         self.num_gpus = config.num_gpus
-
+        self.old_version = config.old_version
         # self.num_tumor_patches = config.num_tumor_patches
         # self.num_normal_patches = config.num_normal_patches
         self.maximum_number_patches = config.maximum_number_patches
@@ -364,7 +364,10 @@ class AutoAnnotator(PatchHanger):
         else:
             print("Start using CPU ... ")
             model = self.build_model(None)
-        model.load_state(self.model_file_location,)
+        if self.old_version:
+            model.load_state_old_version(self.model_file_location)
+        else:
+            model.load_state(self.model_file_location,)
         model.model.eval()
         model.model.share_memory()
         with torch.no_grad():
