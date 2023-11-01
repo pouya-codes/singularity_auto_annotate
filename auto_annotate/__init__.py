@@ -88,8 +88,8 @@ class AutoAnnotator(PatchHanger):
     def __init__(self, config, log_params):
         self.log_file_location = config.log_file_location
         self.log_dir_location = config.log_dir_location
-        self.store_extracted_patches = config.store_extracted_patches or config.patch_location!=""
-        self.generate_heatmap = config.generate_heatmap or config.heatmap_location!=""
+        self.store_extracted_patches = config.store_extracted_patches #or config.patch_location!=""
+        self.generate_heatmap = config.generate_heatmap #or config.heatmap_location!=""
         self.patch_location = config.patch_location
         self.heatmap_location = config.heatmap_location
         self.classification_threshold = config.classification_threshold
