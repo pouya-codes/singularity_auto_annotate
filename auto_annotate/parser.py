@@ -104,8 +104,10 @@ def create_parser(parser):
                 help="The number of GPUs to use. "
                 "Default uses a GPU with the most free memory.")
 
-    parser.add_argument("--subtype_filter", type=str, required=False,
-            help="Only apply auto_annotation on one subtype.")
+    parser.add_argument("--subtype_filter", nargs='+', type=subtype_kv,
+                        action=ParseKVToDictAction, required=False, default={},
+                        help="""Only apply auto_annotation on one subtype. It should be in a format of
+                        'subtype'=num, when num is the part of the slides of this subtype that we apply.""")
 
 #     parser.add_argument("--num_tumor_patches", type=int, required=False, default=-1,
 #             help="The maximum number of extracted tumor patches for each slide. "

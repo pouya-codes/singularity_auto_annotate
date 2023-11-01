@@ -91,7 +91,7 @@ usage: app.py from-arguments [-h] --log_file_location LOG_FILE_LOCATION
                              [--evaluation_size EVALUATION_SIZE] [--is_tumor]
                              [--num_patch_workers NUM_PATCH_WORKERS]
                              [--gpu_id GPU_ID] [--num_gpus NUM_GPUS]
-                             [--subtype_filter SUBTYPE]
+                             [--subtype_filter SUBTYPE=NUM]
                              [--maximum_number_patches MAXIMUM_NUMBER_PATCHES [MAXIMUM_NUMBER_PATCHES ...]]
 
 optional arguments:
@@ -161,7 +161,7 @@ optional arguments:
                         Caution: when you use this flag the code while shuffles the extracted patches from each slide.space separated words describing subtype=maximum_number_of_extracted_patches pairs for each slide. Example: if want to extract 500 Tumor, 0 Normal patches and unlimited POLE patches then the input should be 'Tumor=500 Normal=0 POLE=-1'
                          (default: {})
 
-    --subtype_filter SUBTYPE
-                        Only apply auto_annotation on one subtype. (default: None)
+  --subtype_filter
+     Only apply auto_annotation on one subtype. It should be in a format of 'subtype'=num, when num is the part of the slides of this subtype that we apply. (This is useful for running multiple jobs on different nodes. Each subtype-> a job)
 
 ```

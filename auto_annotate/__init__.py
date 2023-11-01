@@ -130,10 +130,11 @@ class AutoAnnotator(PatchHanger):
 
         self.subtype_filter = config.subtype_filter
         self.subtype_flag = False if 'subtype' not in self.slide_pattern else True
-        if self.subtype_filter and self.subtype_flag:
+        if len(self.subtype_filter)>0 and self.subtype_flag:
             self.slide_paths = utils.filter_path(self.slide_paths,
                                                  self.slide_pattern,
-                                                 self.subtype_filter)
+                                                 self.subtype_filter,
+                                                 self.n_process)
 
         # log parameters
         self.is_binary = log_params['is_binary']
