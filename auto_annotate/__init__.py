@@ -133,7 +133,11 @@ class AutoAnnotator(PatchHanger):
                 if slide_path is None: # the path to that slide was not found
                     continue
                 else:
-                    os_slide = OpenSlide(slide_path)
+                    print(slide_path)
+                    try:
+                        os_slide = OpenSlide(slide_path)
+                    except:
+                        continue
                     slide_size = os_slide.dimensions
                 if self.should_use_manifest:
                     filepath = file
@@ -431,7 +435,6 @@ class AutoAnnotator(PatchHanger):
                         else:
                             pred_label = int(index)
                             pred_value = pred_prob[pred_label].type(torch.float).cpu().item()
-
                         if pred_value >= self.classification_threshold and \
                         pred_value <= self.classification_max_threshold:
                             if (CategoryEnum(pred_label).name.upper() in extracted_patches):
@@ -463,10 +466,10 @@ class AutoAnnotator(PatchHanger):
                                     paths.append(patch_path_)
                                     if self.store_extracted_patches:
                                         resized_patches[resize_size].save(patch_path_)
-                    else:
-                        if (self.generate_heatmap) :
-                            for c in CategoryEnum:
-                                datasets[c.name][tile_y, tile_x] = 0.
+                else:
+                    if (self.generate_heatmap) :
+                        for c in CategoryEnum:
+                            datasets[c.name][tile_y, tile_x] = 0.
         temp = ", ".join(f"{key}={val-extracted_patches[key]}" for key, val in self.maximum_number_patches.items())
         logger.info(f'Finished Extracting {temp if shuffle_coordinate else len(slide_patches)} Patches From {os.path.basename(slide_path)} on {mp.current_process()}')
         utils.save_hdf5(hd5_file_path, paths, self.patch_size)
@@ -552,8 +555,8 @@ class AutoAnnotator(PatchHanger):
         mp.set_start_method('spawn')
         if torch.cuda.is_available():
             print("Start using GPU ... ")
-            gpu_devices = gpu_selector(self.gpu_id, self.num_gpus)
-            model = self.build_model(gpu_devices)
+            # gpu_devices = gpu_selector(self.gpu_id, self.num_gpus)
+            model = self.build_model()
         else:
             print("Start using CPU ... ")
             model = self.build_model(None)
