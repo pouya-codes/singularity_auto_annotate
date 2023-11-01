@@ -73,6 +73,10 @@ def create_parser(parser):
                 help="Maximum obtained probability for the most probable class."
                 "Default: 1.0")
 
+    parser.add_argument("--label", type=str, required=False,
+                help="Only search for this label in output probability of the model!"
+                "Default: None")
+
     parser.add_argument("--slide_pattern", type=str,
             default='subtype',
             help="'/' separated words describing the directory structure of the "

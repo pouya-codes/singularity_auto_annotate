@@ -95,6 +95,7 @@ class AutoAnnotator(PatchHanger):
         self.heatmap_location = config.heatmap_location
         self.classification_threshold = config.classification_threshold
         self.classification_max_threshold = config.classification_max_threshold
+        self.label = config.label
         self.slide_location = config.slide_location
         self.slide_pattern = utils.create_patch_pattern(config.slide_pattern)
         self.patch_size = config.patch_size
@@ -208,6 +209,11 @@ class AutoAnnotator(PatchHanger):
         CategoryEnum = utils.create_category_enum(self.is_binary,
                 subtypes=self.raw_subtypes)
 
+        # If we are interested in one category such as Tumor
+        # Only we need Tumor's probability
+        if self.label is not None:
+            index = utils.find_value_from_name_enum(self.label, CategoryEnum)
+
         logger.info(f'Opening and reading {slide_path} ...')
         os_slide = OpenSlide(slide_path)
 
@@ -248,12 +254,15 @@ class AutoAnnotator(PatchHanger):
                     _, pred_prob, _ = model.forward(cur_data)
                     pred_prob = torch.squeeze(pred_prob)
 
-                    pred_label = torch.argmax(pred_prob).type(torch.int).cpu().item()
-                    pred_value = torch.max(pred_prob).type(torch.float).cpu().item()
+                    if self.label is None:
+                        pred_label = torch.argmax(pred_prob).type(torch.int).cpu().item()
+                        pred_value = torch.max(pred_prob).type(torch.float).cpu().item()
+                    else:
+                        pred_label = int(index)
+                        pred_value = pred_prob[pred_label].type(torch.float).cpu().item()
 
                     if pred_value >= self.classification_threshold and \
-                       pred_value <= self.classification_max_threshold:
-
+                    pred_value <= self.classification_max_threshold:
                         if (CategoryEnum(pred_label).name.upper() in extracted_patches):
                             # logger.info(extracted_patches)
                             if ( extracted_patches[CategoryEnum(pred_label).name.upper()]==0):

@@ -86,6 +86,7 @@ usage: app.py from-arguments [-h] --log_file_location LOG_FILE_LOCATION
                              HEATMAP_LOCATION
                              [--classification_threshold CLASSIFICATION_THRESHOLD]
                              [--classification_max_threshold CLASSIFICATION_MAX_THRESHOLD]
+                             [--label LABEL]
                              [--slide_pattern SLIDE_PATTERN] --patch_size
                              PATCH_SIZE
                              [--resize_sizes RESIZE_SIZES [RESIZE_SIZES ...]]
@@ -130,9 +131,13 @@ optional arguments:
                         Minimum obtained probability for the most probable class.
                          (default: 0)
 
- --classification_max_threshold CLASSIFICATION_MAX_THRESHOLD
-                       Maximum obtained probability for the most probable class.
-                        (default: 1)
+  --classification_max_threshold CLASSIFICATION_MAX_THRESHOLD
+                        Maximum obtained probability for the most probable class.
+                         (default: 1)
+
+  --label: LABEL
+                        If we are interested in only one subtype/category, set this label
+                        so we look at the output probability of it.
 
   --slide_pattern SLIDE_PATTERN
                         '/' separated words describing the directory structure of the slide paths. Normally slides paths look like /path/to/slide/rootdir/subtype/slide.svs and if slide paths are /path/to/slide/rootdir/slide.svs then simply pass ''.
